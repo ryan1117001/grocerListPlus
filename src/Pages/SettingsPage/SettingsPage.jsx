@@ -1,8 +1,24 @@
 import React, { PureComponent } from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, FlatList } from 'react-native';
 import PropTypes from 'prop-types';
+import { Card } from 'react-native-paper';
 import * as styles from './SettingsPage.styles';
 //import { SettingsPageWrapper } from './SettingsPage.styles';
+
+const SETTINGS = [
+  {
+    description: 'Description 1',
+    title: 'First Setting',
+  },
+  {
+    description: 'description 2',
+    title: 'Second Setting',
+  },
+  {
+    description: 'description 3',
+    title: 'Third Setting',
+  },
+];
 
 class SettingsPage extends PureComponent { 
   constructor(props) {
@@ -52,7 +68,14 @@ class SettingsPage extends PureComponent {
     }
     return (
       <View style={styles.SettingsPageWrapper}>
-        <Text>Settings Page</Text>
+        <FlatList
+          data={SETTINGS}
+          renderItem={({ item, index, separators }) => (
+            <Card>
+              <Card.Title title={item.title} subtitle={item.description} />
+            </Card>
+          )}
+        />
       </View>
     );
   }
