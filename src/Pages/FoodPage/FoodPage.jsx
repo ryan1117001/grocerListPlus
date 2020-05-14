@@ -85,9 +85,9 @@ class FoodPage extends PureComponent {
       );
     }
     return (
+      <Provider>
+        <View style={styles.FoodPageWrapper}>
 
-      <View style={styles.FoodPageWrapper}>
-        <Provider>
           <FlatList
             data={DATA}
             renderItem={({ item, index, separators }) => (
@@ -102,7 +102,7 @@ class FoodPage extends PureComponent {
               <Card>
                 <Card.Title title={"Add An Item To Your Fridge!"} />
                 <Card.Content>
-                    <Text> Fill out form</Text>
+                  <Text> Fill out form</Text>
                 </Card.Content>
                 <Card.Actions>
                   <Button onPress={this.hideModal}> Close </Button>
@@ -117,9 +117,9 @@ class FoodPage extends PureComponent {
             icon="plus"
             onPress={this.showModal}
           />
-        </Provider>
-      </View>
 
+        </View>
+      </Provider>
     );
   }
 }
