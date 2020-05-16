@@ -26,6 +26,13 @@ const DATA = [
   },
 ];
 
+const DATA2 = [
+  {
+    id: '2354132',
+    title: 'Deleted'
+  }
+]
+
 class FormPage extends PureComponent {
   constructor(props) {
     super(props);
@@ -98,7 +105,7 @@ class FormPage extends PureComponent {
     return (
       <Provider>
         <ScrollView style={styles.FormPageWrapper}>
-        {/* Store name and dates */}
+          {/* Store name and dates */}
           <View style={styles.TitleRowWrapper}>
             <TextInput
               placeholder={"Temporary Text"}
@@ -128,6 +135,21 @@ class FormPage extends PureComponent {
               onChangeText={text => this.setState({ value: text })}
             />
           </View>
+
+          {/* Checked off stuff */}
+          <List.Section>
+            <List.Accordion
+              title="Deleted Stuff"
+              left={props => <List.Icon {...props} icon="folder" />}
+            >
+              {DATA2.map((item) =>
+                <CheckBoxTextInputRowComponent
+                  id={item.id}
+                  title={item.title}
+                />
+              )}
+            </List.Accordion>
+          </List.Section>
           <Portal>
             <Modal visible={this.state.showCalenderModal} onDismiss={this.hideModal}>
               <Calendar
