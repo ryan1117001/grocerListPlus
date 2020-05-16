@@ -33,6 +33,7 @@ class FormPage extends PureComponent {
     this.state = {
       hasError: false,
       showCalanderModal: false,
+      selectedDate: new Date().toLocaleDateString()
     };
   }
 
@@ -77,6 +78,15 @@ class FormPage extends PureComponent {
     })
   }
 
+  selectDate = (day) => {
+
+    const date = new Date(day.dateString)
+    this.setState({
+      selectedDate: date.toLocaleDateString()
+    })
+    this.hideModal()
+  }
+
   render() {
     if (this.state.hasError) {
       return (
@@ -88,8 +98,8 @@ class FormPage extends PureComponent {
     return (
       <Provider>
         <ScrollView style={styles.FormPageWrapper}>
-
-          <View>
+        {/* Store name and dates */}
+          <View style={styles.TitleRowWrapper}>
             <TextInput
               placeholder={"Temporary Text"}
               onChangeText={text => this.setState({ value: text })}
@@ -97,16 +107,18 @@ class FormPage extends PureComponent {
             <Button
               onPress={this.showModal}
             >
-              Calendar
-          </Button>
+              {this.state.selectedDate}
+            </Button>
           </View>
+          {/* Showing data */}
           {DATA.map((item) =>
             <CheckBoxTextInputRowComponent
               id={item.id}
               title={item.title}
             />
           )}
-          <View style={styles.UserInput} >
+          {/* New data to be added */}
+          <View style={styles.UserInputWrapper} >
             <Checkbox
               status={this.state.checked ? 'checked' : 'unchecked'}
               onPress={() => this.setState({ checked: !this.state.checked })}
@@ -119,29 +131,17 @@ class FormPage extends PureComponent {
           <Portal>
             <Modal visible={this.state.showCalenderModal} onDismiss={this.hideModal}>
               <Calendar
-                // Initially visible month. Default = Date()
-                current={'2012-03-01'}
-                // Minimum date that can be selected, dates before minDate will be grayed out. Default = undefined
-                minDate={'2012-05-10'}
-                // Maximum date that can be selected, dates after maxDate will be grayed out. Default = undefined
-                maxDate={'2012-05-30'}
+                style={styles.CalendarWrapper}
+                theme={{
+                  selectedDayBackgroundColor: '#00adf5',
+                  todayTextColor: '#00adf5'
+                }}
                 // Handler which gets executed on day press. Default = undefined
-                onDayPress={(day) => { console.log('selected day', day) }}
-                // Handler which gets executed on day long press. Default = undefined
-                onDayLongPress={(day) => { console.log('selected day', day) }}
+                onDayPress={this.selectDate}
                 // Month format in calendar title. Formatting values: http://arshaw.com/xdate/#Formatting
-                monthFormat={'yyyy MM'}
+                monthFormat={'MMM yyyy'}
                 // Handler which gets executed when visible month changes in calendar. Default = undefined
                 onMonthChange={(month) => { console.log('month changed', month) }}
-                // Hide month navigation arrows. Default = false
-                hideArrows={true}
-                // Replace default arrows with custom ones (direction can be 'left' or 'right')
-                renderArrow={(direction) => (<Arrow />)}
-                // Do not show days of other months in month page. Default = false
-                hideExtraDays={true}
-                // If hideArrows=false and hideExtraDays=false do not switch month when tapping on greyed out
-                // day from another month that is visible in calendar page. Default = false
-                disableMonthChange={true}
                 // If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
                 firstDay={1}
                 // Hide day names. Default = false
@@ -152,10 +152,6 @@ class FormPage extends PureComponent {
                 onPressArrowLeft={substractMonth => substractMonth()}
                 // Handler which gets executed when press arrow icon right. It receive a callback can go next month
                 onPressArrowRight={addMonth => addMonth()}
-                // Disable left arrow. Default = false
-                disableArrowLeft={true}
-                // Disable right arrow. Default = false
-                disableArrowRight={true}
               />
             </Modal>
           </Portal>

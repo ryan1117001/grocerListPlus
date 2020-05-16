@@ -48,14 +48,16 @@ class CheckBoxTextInputRowComponent extends PureComponent {
   render() {
     return (
       <View style={styles.CheckBoxTextInputRowComponentWrapper} >
-        <Checkbox
-          status={this.state.checked ? 'checked' : 'unchecked'}
-          onPress={() => this.setState({ checked: !this.state.checked })}
-        />
-        <TextInput
-          placeholder={"Temporary Text"}
-          onChangeText={text => this.setState({ value: text })}
-        />
+        <View style={styles.CheckBoxTextWrapper}>
+          <Checkbox
+            status={this.state.checked ? 'checked' : 'unchecked'}
+            onPress={() => this.setState({ checked: !this.state.checked })}
+          />
+          <TextInput
+            placeholder={"Temporary Text"}
+            onChangeText={text => this.setState({ value: text })}
+          />
+        </View>
         <TouchableOpacity
           onPress={() => console.log('Press Icon')}
         >

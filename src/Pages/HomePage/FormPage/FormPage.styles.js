@@ -4,9 +4,16 @@ export const styles = StyleSheet.create({
     FormPageWrapper: {
         flex: 1,
     },
-    UserInput: {
+    CalendarWrapper: {
+        height: 330
+    },
+    TitleRowWrapper: {
+        flexDirection: 'row',
+        justifyContent: 'space-between'
+    },
+    UserInputWrapper: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-    }
+    },
 });

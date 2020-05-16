@@ -5,5 +5,11 @@ export const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    alignContent: 'space-between'
+},
+CheckBoxTextWrapper:{
+  flex: 1,
+  flexDirection: 'row',
+  alignItems: 'center',
 }
 });
