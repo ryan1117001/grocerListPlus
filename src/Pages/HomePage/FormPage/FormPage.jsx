@@ -1,9 +1,13 @@
 import React, { PureComponent } from 'react';
-import { View, Text } from 'react-native';
 import PropTypes from 'prop-types';
 import { styles } from './FormPage.styles';
-import { FlatList } from 'react-native-gesture-handler';
-import { List, Card } from 'react-native-paper';
+
+import { View, Text, ScrollView, TextInput, FlatList, TouchableOpacity, } from 'react-native';
+import { List, Card, Checkbox, Modal, Provider, Portal, Button } from 'react-native-paper';
+import { Calendar, CalendarList, Agenda } from 'react-native-calendars';
+
+import CheckBoxTextInputRowComponent from './CheckBoxTextInputRowComponent/CheckBoxTextInputRowComponent';
+
 //import { FormPageWrapper } from './FormPage.styles';
 
 
@@ -28,6 +32,8 @@ class FormPage extends PureComponent {
 
     this.state = {
       hasError: false,
+      showCalanderModal: false,
+      selectedDate: new Date().toLocaleDateString()
     };
   }
 
@@ -60,6 +66,27 @@ class FormPage extends PureComponent {
     console.log('FormPage will unmount');
   }
 
+  hideModal = () => {
+    this.setState({
+      showCalenderModal: false
+    })
+  }
+
+  showModal = () => {
+    this.setState({
+      showCalenderModal: true
+    })
+  }
+
+  selectDate = (day) => {
+
+    const date = new Date(day.dateString)
+    this.setState({
+      selectedDate: date.toLocaleDateString()
+    })
+    this.hideModal()
+  }
+
   render() {
     if (this.state.hasError) {
       return (
@@ -69,18 +96,68 @@ class FormPage extends PureComponent {
       );
     }
     return (
-      <View style={styles.FormPageWrapper}>
-        <FlatList
-        data={DATA}
-        renderItem={({ item, index, separators }) => (
-          <Card 
-            onPress={this.navigateToForm}
-          >
-            <Card.Title title={item.title} subtitle={item.id} />
-          </Card>
-        )}
-        />
-      </View>
+      <Provider>
+        <ScrollView style={styles.FormPageWrapper}>
+        {/* Store name and dates */}
+          <View style={styles.TitleRowWrapper}>
+            <TextInput
+              placeholder={"Temporary Text"}
+              onChangeText={text => this.setState({ value: text })}
+            />
+            <Button
+              onPress={this.showModal}
+            >
+              {this.state.selectedDate}
+            </Button>
+          </View>
+          {/* Showing data */}
+          {DATA.map((item) =>
+            <CheckBoxTextInputRowComponent
+              id={item.id}
+              title={item.title}
+            />
+          )}
+          {/* New data to be added */}
+          <View style={styles.UserInputWrapper} >
+            <Checkbox
+              status={this.state.checked ? 'checked' : 'unchecked'}
+              onPress={() => this.setState({ checked: !this.state.checked })}
+            />
+            <TextInput
+              placeholder={"Temporary Text"}
+              onChangeText={text => this.setState({ value: text })}
+            />
+          </View>
+          <Portal>
+            <Modal visible={this.state.showCalenderModal} onDismiss={this.hideModal}>
+              <Calendar
+                style={styles.CalendarWrapper}
+                theme={{
+                  selectedDayBackgroundColor: '#00adf5',
+                  todayTextColor: '#00adf5'
+                }}
+                // Handler which gets executed on day press. Default = undefined
+                onDayPress={this.selectDate}
+                // Month format in calendar title. Formatting values: http://arshaw.com/xdate/#Formatting
+                monthFormat={'MMM yyyy'}
+                // Handler which gets executed when visible month changes in calendar. Default = undefined
+                onMonthChange={(month) => { console.log('month changed', month) }}
+                // If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
+                firstDay={1}
+                // Hide day names. Default = false
+                hideDayNames={true}
+                // Show week numbers to the left. Default = false
+                showWeekNumbers={true}
+                // Handler which gets executed when press arrow icon left. It receive a callback can go back month
+                onPressArrowLeft={substractMonth => substractMonth()}
+                // Handler which gets executed when press arrow icon right. It receive a callback can go next month
+                onPressArrowRight={addMonth => addMonth()}
+              />
+            </Modal>
+          </Portal>
+        </ScrollView>
+      </Provider>
+
     );
   }
 }
