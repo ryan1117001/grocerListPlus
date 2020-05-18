@@ -3,7 +3,7 @@ import { View, Text, FlatList } from 'react-native';
 import PropTypes from 'prop-types';
 import { styles } from './HomePage.styles';
 import { FAB, Card } from 'react-native-paper';
-import { navigate} from '../../Utils/Routing/RootNavigation';
+import { navigate} from '../../Utils/RootNavigation';
 
 //import { HomePageWrapper } from './HomePage.styles';
 

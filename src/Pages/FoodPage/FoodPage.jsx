@@ -4,7 +4,10 @@ import PropTypes from 'prop-types';
 import { styles } from './FoodPage.styles';
 
 import { FAB, Card, Portal, Modal, Provider, Button, Paragraph } from 'react-native-paper'
-//import { FoodPageWrapper } from './FoodPage.styles';
+
+import SQLiteDB from '../../Utils/SQLiteDB';
+
+const db = new SQLiteDB();
 
 const DATA = [
   {
@@ -24,6 +27,8 @@ const DATA = [
 class FoodPage extends PureComponent {
   constructor(props) {
     super(props);
+
+    db.initDB();
 
     this.state = {
       hasError: false,

@@ -6,10 +6,7 @@ import { View, Text, ScrollView, TextInput, FlatList, TouchableOpacity, } from '
 import { List, Card, Checkbox, Modal, Provider, Portal, Button } from 'react-native-paper';
 import { Calendar, CalendarList, Agenda } from 'react-native-calendars';
 
-import CheckBoxTextInputRowComponent from './CheckBoxTextInputRowComponent/CheckBoxTextInputRowComponent';
-
-//import { FormPageWrapper } from './FormPage.styles';
-
+import CheckBoxTextInputRowComponent from '../../Components/CheckBoxTextInputRowComponent/CheckBoxTextInputRowComponent';
 
 const DATA = [
   {
@@ -126,10 +123,7 @@ class FormPage extends PureComponent {
           )}
           {/* New data to be added */}
           <View style={styles.UserInputWrapper} >
-            <Checkbox
-              status={this.state.checked ? 'checked' : 'unchecked'}
-              onPress={() => this.setState({ checked: !this.state.checked })}
-            />
+            {/* TODO: Maybe put a plus sign? */}
             <TextInput
               placeholder={"Temporary Text"}
               onChangeText={text => this.setState({ value: text })}
