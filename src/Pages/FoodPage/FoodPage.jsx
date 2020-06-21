@@ -2,12 +2,12 @@ import React, { PureComponent } from 'react';
 import { View, Text, FlatList } from 'react-native';
 import PropTypes from 'prop-types';
 import { styles } from './FoodPage.styles';
-
+import * as SQLite from 'expo-sqlite';
 import { FAB, Card, Portal, Modal, Provider, Button, Paragraph } from 'react-native-paper'
 
-import SQLiteDB from '../../Utils/SQLiteDB';
+import SQLiteDB from '../../Utils/SQLConstants';
 
-const db = new SQLiteDB();
+const db = SQLite.openDatabase("grocerListPlus.db");
 
 const DATA = [
   {
@@ -27,9 +27,6 @@ const DATA = [
 class FoodPage extends PureComponent {
   constructor(props) {
     super(props);
-
-    db.initDB();
-
     this.state = {
       hasError: false,
       showAddFoodModal: false
@@ -100,7 +97,6 @@ class FoodPage extends PureComponent {
                 <Card.Title title={item.title} subtitle={item.id} />
               </Card>
             )}
-          // extraData=
           />
           <Portal>
             <Modal visible={this.state.showAddFoodModal} onDismiss={this.hideModal}>

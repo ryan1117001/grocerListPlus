@@ -10,8 +10,6 @@ import SettingsPage from './Pages/SettingsPage/SettingsPage';
 import { styles } from './Routing.styles'
 import { Button } from 'react-native-paper';
 
-import SQLiteDB from './Utils/SQLiteDB'
-
 function headerRightButton() {
 	return (
 		<Button
