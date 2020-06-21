@@ -2,15 +2,13 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
-import {navigationRef, navigate} from './RootNavigation.js';
-import HomePage from '../../Pages/HomePage/HomePage';
-import FormPage from '../../Pages/HomePage/FormPage'
-import FoodPage from '../../Pages/FoodPage/FoodPage';
-import SettingsPage from '../../Pages/SettingsPage/SettingsPage';
+import {navigationRef, navigate} from './Utils/RootNavigation';
+import HomePage from './Pages/HomePage/HomePage';
+import FormPage from './Pages/FormPage'
+import FoodPage from './Pages/FoodPage/FoodPage';
+import SettingsPage from './Pages/SettingsPage/SettingsPage';
 import { styles } from './Routing.styles'
 import { Button } from 'react-native-paper';
-
-//import { RoutingWrapper } from './Routing.styles';
 
 function headerRightButton() {
 	return (
@@ -37,6 +35,8 @@ function Home() {
 
 export default function Routing() {
 	const Stack = createStackNavigator();
+
+	
 
 	return (
 		<NavigationContainer ref={navigationRef}>
