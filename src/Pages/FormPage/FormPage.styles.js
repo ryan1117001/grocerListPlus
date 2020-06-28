@@ -9,7 +9,8 @@ export const styles = StyleSheet.create({
     },
     TitleRowWrapper: {
         flexDirection: 'row',
-        justifyContent: 'space-between'
+        justifyContent: 'space-around',
+        alignItems: 'center'
     },
     UserInputWrapper: {
         flex: 1,

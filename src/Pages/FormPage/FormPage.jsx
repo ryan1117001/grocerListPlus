@@ -2,33 +2,11 @@ import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { styles } from './FormPage.styles';
 
-import { View, Text, ScrollView, TextInput, FlatList, TouchableOpacity, } from 'react-native';
-import { List, Card, Checkbox, Modal, Provider, Portal, Button } from 'react-native-paper';
-import { Calendar, CalendarList, Agenda } from 'react-native-calendars';
+import { View, Text, ScrollView, TextInput, FlatList } from 'react-native';
+import { List, Card, Modal, Provider, Portal, Button } from 'react-native-paper';
+import { Calendar } from 'react-native-calendars';
 
 import CheckBoxTextInputRowComponent from '../../Components/CheckBoxTextInputRowComponent/CheckBoxTextInputRowComponent';
-
-const DATA = [
-  {
-    id: 'bd7acbea-c1b1-46c2-aed5-3ad53abb28ba',
-    title: 'First Form',
-  },
-  {
-    id: '3ac68afc-c605-48d3-a4f8-fbd91aa97f63',
-    title: 'Second Form',
-  },
-  {
-    id: '58694a0f-3da1-471f-bd96-145571e29d72',
-    title: 'Third Form',
-  },
-];
-
-const DATA2 = [
-  {
-    id: '2354132',
-    title: 'Deleted'
-  }
-]
 
 class FormPage extends PureComponent {
   constructor(props) {
@@ -37,7 +15,9 @@ class FormPage extends PureComponent {
     this.state = {
       hasError: false,
       showCalanderModal: false,
-      selectedDate: new Date().toLocaleDateString()
+      selectedDate: new Date().toLocaleDateString('en-US', 'GMT'),
+      storeName: props.route.params.storeName,
+      storeId: props.route.params.storeId
     };
   }
 
@@ -83,14 +63,14 @@ class FormPage extends PureComponent {
   }
 
   selectDate = (day) => {
-
-    const date = new Date(day.dateString)
+    var date = new Date(Date.UTC(day.year,day.month - 1 ,day.day + 1))
+    console.log(date.toLocaleDateString)
     this.setState({
       selectedDate: date.toLocaleDateString()
     })
     this.hideModal()
   }
-
+  
   render() {
     if (this.state.hasError) {
       return (
@@ -103,11 +83,12 @@ class FormPage extends PureComponent {
       <Provider>
         <ScrollView style={styles.FormPageWrapper}>
           {/* Store name and dates */}
+
           <View style={styles.TitleRowWrapper}>
-            <TextInput
-              placeholder={"Temporary Text"}
-              onChangeText={text => this.setState({ value: text })}
-            />
+            <Text>
+              {this.state.storeName}
+            </Text>
+            
             <Button
               onPress={this.showModal}
             >
@@ -115,33 +96,25 @@ class FormPage extends PureComponent {
             </Button>
           </View>
           {/* Showing data */}
-          {DATA.map((item) =>
-            <CheckBoxTextInputRowComponent
-              id={item.id}
-              title={item.title}
-            />
-          )}
-          {/* New data to be added */}
-          <View style={styles.UserInputWrapper} >
-            {/* TODO: Maybe put a plus sign? */}
-            <TextInput
-              placeholder={"Temporary Text"}
-              onChangeText={text => this.setState({ value: text })}
-            />
-          </View>
-
+          <FlatList
+            data={this.state.data}
+            renderItem={({ item, index, separators }) => (
+              <Card>
+                <Card.Title title={item.storeName} subtitle={item.id} />
+                <Card.Actions>
+                  <Button > OK </Button>
+                  <Button > Delete </Button>
+                </Card.Actions>
+              </Card>
+            )}
+          />
           {/* Checked off stuff */}
           <List.Section>
             <List.Accordion
               title="Deleted Stuff"
               left={props => <List.Icon {...props} icon="folder" />}
             >
-              {DATA2.map((item) =>
-                <CheckBoxTextInputRowComponent
-                  id={item.id}
-                  title={item.title}
-                />
-              )}
+
             </List.Accordion>
           </List.Section>
           <Portal>
@@ -180,6 +153,7 @@ class FormPage extends PureComponent {
 
 FormPage.propTypes = {
   // bla: PropTypes.string,
+  store: PropTypes.object
 };
 
 FormPage.defaultProps = {
