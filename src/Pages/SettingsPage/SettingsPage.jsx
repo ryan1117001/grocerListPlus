@@ -1,20 +1,32 @@
 import React, { PureComponent } from 'react';
 import { View, Text, FlatList } from 'react-native';
 import PropTypes from 'prop-types';
-import { Card, Button } from 'react-native-paper';
+import { Card, Button, List } from 'react-native-paper';
 import * as styles from './SettingsPage.styles';
 //import { SettingsPageWrapper } from './SettingsPage.styles';
 import * as SQLite from 'expo-sqlite';
 
-import { deleteStores } from '../../Utils/SQLConstants';
+import { deleteStores, deleteItems, dropItemsTable, dropStoreTable } from '../../Utils/SQLConstants';
 
 const db = SQLite.openDatabase("grocerListPlus.db");
 
 const SETTINGS = [
   {
+    id: 1,
     description: 'Remove All Stores',
     title: 'Remove All Stores',
+  },
+  {
+    id: 2,
+    description: 'Remove All Items',
+    title: 'Remove All Items'
+  },
+  {
+    id: 3,
+    description: 'Drop All Tables',
+    title: 'Drop All Tables'
   }
+
 ];
 
 class SettingsPage extends PureComponent {
@@ -65,6 +77,41 @@ class SettingsPage extends PureComponent {
     )
   }
 
+  removeAllItems = () => {
+    console.log('remove items')
+    db.transaction((tx) => {
+      tx.executeSql(deleteItems);
+    },
+      (error) => console.log(error + '\ntransaction error'),
+      () => console.log('successful')
+    )
+  }
+
+  removeAllTables = () => {
+    console.log('drop tables')
+    db.transaction((tx) => {
+      tx.executeSql(dropItemsTable);
+      tx.executeSql(dropStoreTable);
+    },
+      (error) => console.log(error + '\ntransaction error'),
+      () => console.log('successful')
+    )
+  }
+
+  identifySQLQuery = (id) => {
+    switch (id) {
+      case 1:
+        this.removeAllStores();
+        break;
+      case 2:
+        this.removeAllItems();
+        break;
+      case 3:
+        this.removeAllTables();
+        break;
+    }
+  }
+
   render() {
     if (this.state.hasError) {
       return (
@@ -75,14 +122,15 @@ class SettingsPage extends PureComponent {
     }
     return (
       <View style={styles.SettingsPageWrapper}>
-        <FlatList
-          data={SETTINGS}
-          renderItem={({ item, index, separators }) => (
-            <Card onPress={this.removeAllStores}>
-              <Card.Title title={item.title} subtitle={item.description} />
-            </Card>
+        <List.Section>
+          {SETTINGS.map(item =>
+            <List.Item
+              title={item.description}
+              description={item.description}
+              onPress={this.identifySQLQuery.bind(this,item.id)}
+              />
           )}
-        />
+        </List.Section>
       </View>
     );
   }
