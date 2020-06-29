@@ -11,12 +11,6 @@ import { deleteItem, selectUncheckedItems, insertItem, selectCheckedItems, chang
 
 const db = SQLite.openDatabase('grocerListPlus.db');
 
-const DATA = [
-  {
-    id: 1,
-    itemName: 'Test Item'
-  }
-]
 class FormPage extends PureComponent {
   constructor(props) {
     super(props);
