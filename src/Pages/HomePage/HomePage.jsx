@@ -15,7 +15,6 @@ class HomePage extends PureComponent {
   constructor(props) {
     super(props);
 
-
     this.state = {
       hasError: false,
       showAddStoreModal: false,
@@ -30,6 +29,10 @@ class HomePage extends PureComponent {
 
   componentDidMount = () => {
     console.log('HomePage mounted');
+
+    this._unsubscribe = this.props.navigation.addListener('focus', () => {
+      this.queryAllStores()
+    })
   }
 
   static getDerivedStateFromError(error) {
@@ -55,10 +58,11 @@ class HomePage extends PureComponent {
 
   componentWillUnmount = () => {
     console.log('HomePage will unmount');
+    this._unsubscribe();
   }
 
   navigateToForm = (store) => {
-    navigate('Forms', { storeName: store.storeName, storeId: store.id })
+    navigate('Forms', { storeName: store.storeName, storeId: store.id, dateToGo: store.dateToGo })
   }
 
   initDB = () => {
@@ -74,7 +78,6 @@ class HomePage extends PureComponent {
   };
 
   queryAllStores() {
-    var isSuccess = false;
     db.transaction(tx => {
       tx.executeSql(
         selectStores,
@@ -84,7 +87,6 @@ class HomePage extends PureComponent {
           this.setState({
             data: _array
           })
-          isSuccess = true
         },
         () => console.log("Error")
       )
@@ -104,8 +106,9 @@ class HomePage extends PureComponent {
   }
 
   addStoreName = () => {
+    var date = new Date().toLocaleDateString()
     db.transaction(tx => {
-      tx.executeSql(insertStore, [this.state.storeNameText],
+      tx.executeSql(insertStore, [this.state.storeNameText, date],
         () => console.log("Success"),
         () => console.log("Error")
       )
@@ -125,13 +128,14 @@ class HomePage extends PureComponent {
   }
 
   deleteStore = (id) => {
+    //TODO: Delete related items
     db.transaction(tx => {
       tx.executeSql(deleteStore, [id],
         () => console.log("Success"),
         () => console.log("Error")
       )
     })
-
+    this.queryAllStores()
   }
 
   render() {
@@ -154,12 +158,13 @@ class HomePage extends PureComponent {
               />
             }
             renderItem={({ item, index, separators }) => (
-              <Card>
-                <Card.Title title={item.storeName} subtitle={item.id} />
-                <Card.Actions>
-                  <Button onPress={this.navigateToForm.bind(this, item)} > OK </Button>
-                  <Button onPress={this.deleteStore.bind(this, item.id)}> Delete </Button>
-                </Card.Actions>
+              <Card
+                onPress={this.navigateToForm.bind(this, item)}
+              >
+                <Card.Title
+                  title={item.storeName} subtitle={item.dateToGo}
+                  right={() => <Button onPress={this.deleteStore.bind(this, item.id)}> Delete </Button>}
+                />
               </Card>
             )}
           />
