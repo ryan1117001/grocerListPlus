@@ -19,7 +19,6 @@ class StoreItemsPage extends PureComponent {
     super(props);
 
     this.state = {
-      hasError: false,
       showCalendarModal: false,
       showAddItemModal: false,
       selectedDate: props.route.params.dateToGo,
@@ -36,13 +35,7 @@ class StoreItemsPage extends PureComponent {
 
   componentDidMount = () => { }
 
-  static getDerivedStateFromError(error) { }
-
   componentDidCatch(error, info) { }
-
-  getDerivedStateFromProps = (nextProps, prevState) => { }
-
-  getSnapshotBeforeUpdate = (prevProps, prevState) => { }
 
   componentDidUpdate = () => { }
 
