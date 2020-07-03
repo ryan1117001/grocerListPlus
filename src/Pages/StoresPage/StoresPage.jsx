@@ -13,7 +13,6 @@ class StoresPage extends PureComponent {
     super(props);
 
     this.state = {
-      hasError: false,
       showAddStoreModal: false,
       storeNameText: '',
       data: [],
@@ -25,20 +24,12 @@ class StoresPage extends PureComponent {
   }
 
   componentDidMount = () => {
-    // console.debug('HomePage mounted');
-
     this._unsubscribe = this.props.navigation.addListener('focus', () => {
       this.queryAllStores()
     })
   }
 
-  static getDerivedStateFromError(error) { }
-
   componentDidCatch(error, info) { }
-
-  static getDerivedStateFromProps = (nextProps, prevState) => { }
-
-  getSnapshotBeforeUpdate = (prevProps, prevState) => { }
 
   componentDidUpdate = () => { }
 

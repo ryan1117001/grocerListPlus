@@ -12,7 +12,6 @@ class FoodPage extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      hasError: false,
       showAddFoodModal: false,
       unarchivedData: [],
       archivedData: [],
@@ -27,13 +26,7 @@ class FoodPage extends PureComponent {
     })
   }
 
-  static getDerivedStateFromError(error) { }
-
   componentDidCatch(error, info) { }
-
-  getDerivedStateFromProps = (nextProps, prevState) => { }
-
-  getSnapshotBeforeUpdate = (prevProps, prevState) => { }
 
   componentDidUpdate = () => { }
 
