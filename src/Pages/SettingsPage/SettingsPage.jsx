@@ -39,7 +39,7 @@ class SettingsPage extends PureComponent {
   }
 
   componentDidMount = () => {
-    console.log('SettingsPage mounted');
+    console.debug('SettingsPage mounted');
   }
 
   static getDerivedStateFromError(error) {
@@ -52,49 +52,49 @@ class SettingsPage extends PureComponent {
   }
 
   // getDerivedStateFromProps = (nextProps, prevState) => {
-  //   console.log('SettingsPage getDerivedStateFromProps', nextProps, prevState);
+  //   console.debug('SettingsPage getDerivedStateFromProps', nextProps, prevState);
   // }
 
   getSnapshotBeforeUpdate = (prevProps, prevState) => {
-    console.log('SettingsPage getSnapshotBeforeUpdate', prevProps, prevState);
+    console.debug('SettingsPage getSnapshotBeforeUpdate', prevProps, prevState);
   }
 
   componentDidUpdate = () => {
-    console.log('SettingsPage did update');
+    console.debug('SettingsPage did update');
   }
 
   componentWillUnmount = () => {
-    console.log('SettingsPage will unmount');
+    console.debug('SettingsPage will unmount');
   }
 
   removeAllStores = () => {
-    console.log('Removing all stores')
+    console.debug('Removing all stores')
     db.transaction((tx) => {
       tx.executeSql(deleteStores);
     },
-      (error) => console.log(error + '\ntransaction error'),
-      () => console.log('successful')
+      (error) => console.debug(error + '\ntransaction error'),
+      () => console.debug('successful')
     )
   }
 
   removeAllItems = () => {
-    console.log('remove items')
+    console.debug('remove items')
     db.transaction((tx) => {
       tx.executeSql(deleteItems);
     },
-      (error) => console.log(error + '\ntransaction error'),
-      () => console.log('successful')
+      (error) => console.debug(error + '\ntransaction error'),
+      () => console.debug('successful')
     )
   }
 
   removeAllTables = () => {
-    console.log('drop tables')
+    console.debug('drop tables')
     db.transaction((tx) => {
       tx.executeSql(dropItemsTable);
       tx.executeSql(dropStoreTable);
     },
-      (error) => console.log(error + '\ntransaction error'),
-      () => console.log('successful')
+      (error) => console.debug(error + '\ntransaction error'),
+      () => console.debug('successful')
     )
   }
 

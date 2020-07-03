@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { styles } from './FormPage.styles';
+import { styles } from './StoreItemsPage.styles';
 
 import { View, Text, ScrollView, TextInput, FlatList } from 'react-native';
 import { List, Card, Modal, Provider, Portal, Button, FAB, Dialog, Checkbox } from 'react-native-paper';
@@ -14,7 +14,7 @@ import {
 
 // const db = SQLite.openDatabase('grocerListPlus.db');
 
-class FormPage extends PureComponent {
+class StoreItemsPage extends PureComponent {
   constructor(props) {
     super(props);
 
@@ -34,38 +34,29 @@ class FormPage extends PureComponent {
     this.queryAllUnarchivedItemsInStore()
   }
 
-  // componentDidMount = () => {
-  //   console.log('FormPage mounted');
-  // }
+  componentDidMount = () => { }
 
-  // static getDerivedStateFromError(error) {
-  //   // getDerivedStateFromError -> Update state so the next render will show the fallback UI.
-  //   return { hasError: true };
-  // }
+  static getDerivedStateFromError(error) { }
 
-  // componentDidCatch(error, info) {
-  //   // You can also log the error to an error reporting service
-  // }
+  componentDidCatch(error, info) { }
 
-  // getDerivedStateFromProps = (nextProps, prevState) => {
-  //   console.log('FormPage getDerivedStateFromProps', nextProps, prevState);
-  // }
+  getDerivedStateFromProps = (nextProps, prevState) => { }
 
-  // getSnapshotBeforeUpdate = (prevProps, prevState) => {
-  //   console.log('FormPage getSnapshotBeforeUpdate', prevProps, prevState);
-  // }
+  getSnapshotBeforeUpdate = (prevProps, prevState) => { }
 
-  // componentDidUpdate = () => {
-  //   console.log('FormPage did update');
-  // }
+  componentDidUpdate = () => { }
 
-  // componentWillUnmount = () => {
-  //   console.log('FormPage will unmount');
-  // }
+  componentWillUnmount = () => { }
 
   hideCalendarModal = () => {
     this.setState({
       showCalendarModal: false
+    })
+  }
+
+  hideAddItemModal = () => {
+    this.setState({
+      showAddItemModal: false
     })
   }
 
@@ -78,12 +69,6 @@ class FormPage extends PureComponent {
   showAddItemModal = () => {
     this.setState({
       showAddItemModal: true
-    })
-  }
-
-  hideAddItemModal = () => {
-    this.setState({
-      showAddItemModal: false
     })
   }
 
@@ -100,8 +85,8 @@ class FormPage extends PureComponent {
     db.transaction(tx => {
       tx.executeSql(updateDateToGo,
         [this.state.selectedDate, this.state.storeId],
-        () => console.log('Success'),
-        () => console.log('Error')
+        () => console.debug('Success'),
+        () => console.debug('Error')
       )
     })
   }
@@ -112,60 +97,55 @@ class FormPage extends PureComponent {
         tx.executeSql(insertItem,
           [this.state.itemNameText, this.state.storeId],
           () => {
-            console.log('Success')
+            console.debug('Success')
+            this.queryAllUnarchivedItemsInStore()
+            this.hideAddItemModal()
             this.setState({
               itemNameText: ''
             })
           },
-          () => console.log('Error')
+          () => console.debug('Error')
         )
       })
-      this.queryAllUnarchivedItemsInStore()
-      this.hideAddItemModal()
     }
   }
 
   deleteItem = (id) => {
-    console.log('delete item')
+    console.debug('delete item')
     db.transaction(tx => {
       tx.executeSql(
         deleteItem,
         [id],
-        () => console.log('success'),
-        () => console.log('error')
+        () => console.debug('success'),
+        () => console.debug('error')
       )
     })
-
-    // TODO: distinguish which when to reload on delete
     this.queryAllArchivedItemsInStore()
     this.queryAllUnarchivedItemsInStore()
   }
 
   queryAllArchivedItemsInStore = () => {
-    console.log('all checked')
+    console.debug('all checked')
     db.transaction(tx => {
       tx.executeSql(
         selectCheckedItems,
         [this.state.storeId],
         (_, { rows: { _array } }) => {
-          // console.log(_array)
+          // console.debug(_array)
           this.setState({
             archivedData: _array
           })
         },
-        () => console.log('Error')
+        () => console.debug('Error')
       )
     })
   }
 
   changeToArchivedCheckBox = (id) => {
-    console.log('changing checkbox status')
+    console.debug('changing checkbox status')
     db.transaction(tx => {
       tx.executeSql(
-        changeToArchived,
-        [id],
-        () => console.log('success'),
-        () => console.log('error')
+        changeToArchived, [id]
       )
     })
     this.queryAllArchivedItemsInStore()
@@ -173,38 +153,39 @@ class FormPage extends PureComponent {
   }
 
   changeToUnarchivedCheckBox = (id) => {
-    console.log('changing checkbox status')
+    console.debug('changing checkbox status')
     db.transaction(tx => {
       tx.executeSql(
         changeToUnarchived,
         [id],
-        () => console.log('success'),
-        () => console.log('error')
+        () => console.debug('success'),
+        () => console.debug('error')
       )
-    })
-    // TODO: distinguish which when to reload on delete
-    this.queryAllArchivedItemsInStore()
-    this.queryAllUnarchivedItemsInStore()
+    },
+      (error) => console.debug(error),
+      () => {
+        this.queryAllArchivedItemsInStore()
+        this.queryAllUnarchivedItemsInStore()
+      })
   }
 
   queryAllUnarchivedItemsInStore = () => {
-    console.log('all unchecked')
+    console.debug('all unchecked')
     db.transaction(tx => {
       tx.executeSql(
         selectUncheckedItems,
         [this.state.storeId],
         (_, { rows: { _array } }) => {
-          // console.log(_array)
           this.setState({
             unarchivedData: _array
           })
         },
-        () => console.log('Error')
+        () => console.debug('Error')
       )
     })
   }
 
-  renderCheckedItems = () => {
+  renderArchivedItems = () => {
     if (this.state.archivedData.length > 0) {
       return (
         <View>
@@ -240,7 +221,7 @@ class FormPage extends PureComponent {
     }
   }
 
-  renderUncheckedItems = () => {
+  renderUnarchivedItems = () => {
     if (this.state.unarchivedData.length > 0) {
       return (
         this.state.unarchivedData.map((item) => {
@@ -271,19 +252,19 @@ class FormPage extends PureComponent {
 
   render() {
 
-    const checkedAccordianList = this.renderCheckedItems()
-    const uncheckedList = this.renderUncheckedItems()
+    const archivedAccordianList = this.renderArchivedItems()
+    const unarchivedAccordianList = this.renderUnarchivedItems()
 
     if (this.state.hasError) {
       return (
-        <View style={styles.FormPageWrapper}>
+        <View style={styles.StoreItemsPageWrapper}>
           <Text>Something went wrong.</Text>
         </View>
       );
     }
     return (
       <Provider>
-        <ScrollView style={styles.FormPageWrapper}>
+        <ScrollView style={styles.StoreItemsPageWrapper}>
           {/* Store name and dates */}
 
           <View style={styles.TitleRowWrapper}>
@@ -305,10 +286,10 @@ class FormPage extends PureComponent {
             />
 
             {/* Unchecked off stuff*/}
-            {uncheckedList}
+            {unarchivedAccordianList}
 
             {/* Checked off stuff */}
-            {checkedAccordianList}
+            {archivedAccordianList}
           </List.Section>
 
 
@@ -325,7 +306,7 @@ class FormPage extends PureComponent {
                 // Month format in calendar title. Formatting values: http://arshaw.com/xdate/#Formatting
                 monthFormat={'MMM yyyy'}
                 // Handler which gets executed when visible month changes in calendar. Default = undefined
-                onMonthChange={(month) => { console.log('month changed', month) }}
+                onMonthChange={(month) => { console.debug('month changed', month) }}
                 // If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
                 firstDay={1}
                 // Hide day names. Default = false
@@ -371,13 +352,13 @@ class FormPage extends PureComponent {
   }
 }
 
-FormPage.propTypes = {
+StoreItemsPage.propTypes = {
   // bla: PropTypes.string,
   store: PropTypes.object
 };
 
-FormPage.defaultProps = {
+StoreItemsPage.defaultProps = {
   // bla: 'test',
 };
 
-export default FormPage;
+export default StoreItemsPage;

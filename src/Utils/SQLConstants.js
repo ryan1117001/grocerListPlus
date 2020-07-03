@@ -34,6 +34,7 @@ export const updateDateToGo = 'UPDATE stores SET dateToGo=? WHERE id = ?'
 // Items
 export const insertItem = 'INSERT INTO items (itemName, isArchived, storeId) values (?,0,?)'
 export const deleteItems = 'DELETE FROM items;'
+export const deleteItemsByStoreId = 'DELETE FROM items WHERE storeId = ?'
 export const deleteItem = 'DELETE FROM items WHERE id=?;'
 export const selectItems = 'SELECT * FROM items;'
 export const selectUncheckedItems = 'SELECT * FROM items WHERE isArchived=0 AND storeId=?'
