@@ -1,14 +1,12 @@
 import React, { PureComponent } from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { styles } from './FoodPage.styles';
+import { View, Text, ScrollView, RefreshControl } from 'react-native';
+import { styles } from './AllItemsPage.styles';
 import { List, Button, Checkbox, Provider } from 'react-native-paper'
 
 import {
   db, selectAllArchivedItems, selectAllUnarchivedItems,
   changeToArchived, changeToUnarchived, deleteItem
 } from '../../Utils/SQLConstants';
-
-// const db = SQLite.openDatabase('grocerListPlus.db');
 
 class FoodPage extends PureComponent {
   constructor(props) {
@@ -17,63 +15,48 @@ class FoodPage extends PureComponent {
       hasError: false,
       showAddFoodModal: false,
       unarchivedData: [],
-      archivedData: []
+      archivedData: [],
+      isRefreshing: false
     };
   }
 
   componentDidMount = () => {
-    // console.log('FoodPage mounted');
     this._unsubscribe = this.props.navigation.addListener('focus', () => {
       this.queryAllArchivedItems()
       this.queryAllUnarchivedItems()
     })
   }
 
-  // static getDerivedStateFromError(error) {
-  //   // getDerivedStateFromError -> Update state so the next render will show the fallback UI.
-  //   return { hasError: true };
-  // }
+  static getDerivedStateFromError(error) { }
 
-  // componentDidCatch(error, info) {
-  //   // You can also log the error to an error reporting service
-  // }
+  componentDidCatch(error, info) { }
 
-  // // getDerivedStateFromProps = (nextProps, prevState) => {
-  // //   console.log('FoodPage getDerivedStateFromProps', nextProps, prevState);
-  // // }
+  getDerivedStateFromProps = (nextProps, prevState) => { }
 
-  // getSnapshotBeforeUpdate = (prevProps, prevState) => {
-  //   console.log('FoodPage getSnapshotBeforeUpdate', prevProps, prevState);
-  // }
+  getSnapshotBeforeUpdate = (prevProps, prevState) => { }
 
-  // componentDidUpdate = () => {
-  //   console.log('FoodPage did update');
-  // }
+  componentDidUpdate = () => { }
 
   componentWillUnmount = () => {
-    // console.log('FoodPage will unmount');
     this._unsubscribe();
   }
 
   queryAllArchivedItems = () => {
-    console.log('all checked')
     db.transaction(tx => {
       tx.executeSql(
         selectAllArchivedItems,
         [],
         (_, { rows: { _array } }) => {
-          // console.log(_array)
           this.setState({
             archivedData: _array
           })
         },
-        () => console.log('Error')
+        () => console.debug('Error')
       )
     })
   }
 
   changeToArchivedCheckBox = (id) => {
-    // console.log('changing checkbox status')
     db.transaction(tx => {
       tx.executeSql(
         changeToArchived,
@@ -83,65 +66,71 @@ class FoodPage extends PureComponent {
           this.queryAllArchivedItems()
           this.queryAllUnarchivedItems()
         },
-        () => console.log('error')
+        () => console.debug('error')
       )
     })
 
   }
 
   changeToUnarchivedCheckBox = (id) => {
-    console.log('changing checkbox status')
+    console.debug('changing checkbox status')
     db.transaction(tx => {
       tx.executeSql(
         changeToUnarchived,
         [id],
         () => {
-          console.log('success')
+          console.debug('success')
           this.queryAllArchivedItems()
           this.queryAllUnarchivedItems()
         },
-        () => console.log('error')
+        () => console.debug('error')
       )
     })
   }
 
   queryAllUnarchivedItems = () => {
-    console.log('all unchecked')
     db.transaction(tx => {
       tx.executeSql(
         selectAllUnarchivedItems,
         [],
         (_, { rows: { _array } }) => {
-          // console.log(_array)
           this.setState({
             unarchivedData: _array
           })
         },
-        () => console.log('Error')
+        () => console.debug('Error')
       )
     })
-
   }
 
   deleteItem = (id) => {
-    console.log('delete item')
+    console.debug('delete item')
     db.transaction(tx => {
       tx.executeSql(
         deleteItem,
         [id],
         () => {
-          console.log('success')
-          // TODO: distinguish which when to reload on delete
+          console.debug('success')
           this.queryAllArchivedItems()
           this.queryAllUnarchivedItems()
         },
-        () => console.log('error')
+        () => console.debug('error')
       )
     })
-
   }
 
-  renderCheckedItems = () => {
+  forceRefresh = () => {
+    this.setState({
+      isRefreshing: true
+    })
+    this.queryAllArchivedItems()
+    this.queryAllUnarchivedItems()
+    this.setState({
+      isRefreshing: false
+    })
+  }
+
+  renderArchivedItems = () => {
     if (this.state.archivedData.length > 0) {
       return (
         <View>
@@ -177,7 +166,7 @@ class FoodPage extends PureComponent {
     }
   }
 
-  renderUncheckedItems = () => {
+  renderUnarchivedItems = () => {
     if (this.state.unarchivedData.length > 0) {
       return (
         this.state.unarchivedData.map((item) => {
@@ -208,8 +197,8 @@ class FoodPage extends PureComponent {
     }
   }
   render() {
-    const checkedAccordianList = this.renderCheckedItems()
-    const uncheckedList = this.renderUncheckedItems()
+    const archivedAccordianList = this.renderArchivedItems()
+    const unarchivedAccordianList = this.renderUnarchivedItems()
 
     if (this.state.hasError) {
       return (
@@ -220,15 +209,20 @@ class FoodPage extends PureComponent {
     }
     return (
       <Provider>
-        <ScrollView style={styles.FoodPageWrapper}>
+        <ScrollView style={styles.FoodPageWrapper} refreshControl={
+          <RefreshControl
+            refreshing={this.state.isRefreshing}
+            onRefresh={this.forceRefresh}
+          />
+        }>
           {/* Showing data */}
           <List.Section>
 
             {/* Unchecked off stuff*/}
-            {uncheckedList}
+            {unarchivedAccordianList}
 
             {/* Checked off stuff */}
-            {checkedAccordianList}
+            {archivedAccordianList}
           </List.Section>
         </ScrollView>
       </Provider>

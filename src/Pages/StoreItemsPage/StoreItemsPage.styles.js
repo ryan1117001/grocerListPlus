@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-    FormPageWrapper: {
+    StoreItemsPageWrapper: {
         flex: 1,
     },
     CalendarWrapper: {
