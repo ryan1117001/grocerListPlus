@@ -1,15 +1,10 @@
 import React, { PureComponent } from 'react';
 import { View, Text, FlatList, TextInput, RefreshControl } from 'react-native';
-import PropTypes from 'prop-types';
 import { styles } from './HomePage.styles';
 import { FAB, Card, Button, Dialog, Portal, Provider } from 'react-native-paper';
 import { navigate } from '../../Utils/RootNavigation';
-import { enableFK, createItemsTable, createStoresTable, insertStore, selectStores, deleteStore } from '../../Utils/SQLConstants';
-import * as SQLite from 'expo-sqlite';
-
-//import { HomePageWrapper } from './HomePage.styles';
-
-const db = SQLite.openDatabase("grocerListPlus.db");
+import { db, enableFK, createItemsTable, 
+  createStoresTable, insertStore, selectStores, deleteStore } from '../../Utils/SQLConstants';
 
 class HomePage extends PureComponent {
   constructor(props) {
@@ -18,46 +13,46 @@ class HomePage extends PureComponent {
     this.state = {
       hasError: false,
       showAddStoreModal: false,
-      storeNameText: "",
+      storeNameText: '',
       data: [],
       isRefreshing: false
     };
     // Init tables
     this.initDB();
-    this.queryAllStores()
+
   }
 
   componentDidMount = () => {
-    console.log('HomePage mounted');
+    // console.log('HomePage mounted');
 
     this._unsubscribe = this.props.navigation.addListener('focus', () => {
       this.queryAllStores()
     })
   }
 
-  static getDerivedStateFromError(error) {
-    // getDerivedStateFromError -> Update state so the next render will show the fallback UI.
-    return { hasError: true };
-  }
-
-  componentDidCatch(error, info) {
-    // You can also log the error to an error reporting service
-  }
-
-  // static getDerivedStateFromProps = (nextProps, prevState) => {
-  //   console.log('HomePage getDerivedStateFromProps', nextProps, prevState);
+  // static getDerivedStateFromError(error) {
+  //   // getDerivedStateFromError -> Update state so the next render will show the fallback UI.
+  //   return { hasError: true };
   // }
 
-  getSnapshotBeforeUpdate = (prevProps, prevState) => {
-    console.log('HomePage getSnapshotBeforeUpdate', prevProps, prevState);
-  }
+  // componentDidCatch(error, info) {
+  //   // You can also log the error to an error reporting service
+  // }
 
-  componentDidUpdate = () => {
-    console.log('HomePage did update');
-  }
+  // // static getDerivedStateFromProps = (nextProps, prevState) => {
+  // //   console.log('HomePage getDerivedStateFromProps', nextProps, prevState);
+  // // }
+
+  // getSnapshotBeforeUpdate = (prevProps, prevState) => {
+  //   console.log('HomePage getSnapshotBeforeUpdate', prevProps, prevState);
+  // }
+
+  // componentDidUpdate = () => {
+  //   console.log('HomePage did update');
+  // }
 
   componentWillUnmount = () => {
-    console.log('HomePage will unmount');
+    // console.log('HomePage will unmount');
     this._unsubscribe();
   }
 

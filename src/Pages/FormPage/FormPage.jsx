@@ -7,9 +7,12 @@ import { List, Card, Modal, Provider, Portal, Button, FAB, Dialog, Checkbox } fr
 import { Calendar } from 'react-native-calendars';
 import * as SQLite from 'expo-sqlite';
 
-import { deleteItem, selectUncheckedItems, insertItem, selectCheckedItems, changeToArchived, changeToUnarchived, updateDateToGo } from '../../Utils/SQLConstants';
+import {
+  db, deleteItem, selectUncheckedItems, insertItem, selectCheckedItems,
+  changeToArchived, changeToUnarchived, updateDateToGo
+} from '../../Utils/SQLConstants';
 
-const db = SQLite.openDatabase('grocerListPlus.db');
+// const db = SQLite.openDatabase('grocerListPlus.db');
 
 class FormPage extends PureComponent {
   constructor(props) {
@@ -31,35 +34,34 @@ class FormPage extends PureComponent {
     this.queryAllUnarchivedItemsInStore()
   }
 
-  componentDidMount = () => {
-    console.log('FormPage mounted');
-  }
+  // componentDidMount = () => {
+  //   console.log('FormPage mounted');
+  // }
 
-  static getDerivedStateFromError(error) {
-    // getDerivedStateFromError -> Update state so the next render will show the fallback UI.
-    return { hasError: true };
-  }
+  // static getDerivedStateFromError(error) {
+  //   // getDerivedStateFromError -> Update state so the next render will show the fallback UI.
+  //   return { hasError: true };
+  // }
 
-  componentDidCatch(error, info) {
-    // You can also log the error to an error reporting service
-  }
+  // componentDidCatch(error, info) {
+  //   // You can also log the error to an error reporting service
+  // }
 
-  getDerivedStateFromProps = (nextProps, prevState) => {
-    console.log('FormPage getDerivedStateFromProps', nextProps, prevState);
-  }
+  // getDerivedStateFromProps = (nextProps, prevState) => {
+  //   console.log('FormPage getDerivedStateFromProps', nextProps, prevState);
+  // }
 
-  getSnapshotBeforeUpdate = (prevProps, prevState) => {
-    console.log('FormPage getSnapshotBeforeUpdate', prevProps, prevState);
-  }
+  // getSnapshotBeforeUpdate = (prevProps, prevState) => {
+  //   console.log('FormPage getSnapshotBeforeUpdate', prevProps, prevState);
+  // }
 
-  componentDidUpdate = () => {
-    console.log('FormPage did update');
-  }
+  // componentDidUpdate = () => {
+  //   console.log('FormPage did update');
+  // }
 
-  componentWillUnmount = () => {
-    console.log('FormPage will unmount');
-
-  }
+  // componentWillUnmount = () => {
+  //   console.log('FormPage will unmount');
+  // }
 
   hideCalendarModal = () => {
     this.setState({
@@ -225,6 +227,7 @@ class FormPage extends PureComponent {
                     />
                   }
                   title={item.itemName}
+                  key={item.id}
                 />
               )
             })}
@@ -255,6 +258,7 @@ class FormPage extends PureComponent {
                 />
               }
               title={item.itemName}
+              key={item.id}
             />
           )
         })
