@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react';
-import { View, Text, FlatList, TextInput, RefreshControl } from 'react-native';
+import { View, FlatList, TextInput, RefreshControl } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { FAB, Card, Button, Dialog, Portal, Provider } from 'react-native-paper';
+import { FAB, Card, Button, Dialog, Portal, Provider, Appbar } from 'react-native-paper';
 import { navigate } from '../../Utils/RootNavigation';
 import {
   db, enableFK, createItemsTable,
@@ -38,7 +38,11 @@ class StoresPage extends PureComponent {
   }
 
   navigateToForm = (store) => {
-    navigate('Store Items', { storeName: store.storeName, storeId: store.id, dateToGo: store.dateToGo })
+    navigate('storeItems', {
+      storeName: store.storeName,
+      storeId: store.id,
+      dateToGo: store.dateToGo
+    })
   }
 
   initDB = () => {
@@ -104,7 +108,6 @@ class StoresPage extends PureComponent {
   }
 
   deleteStore = (id) => {
-    //TODO: Delete related items
     db.transaction(tx => {
       tx.executeSql(deleteItemsByStoreId, [id])
       tx.executeSql(deleteStore, [id])
@@ -118,15 +121,14 @@ class StoresPage extends PureComponent {
   }
 
   render() {
-    if (this.state.hasError) {
-      return (
-        <View style={styles.HomePageWrapper}>
-          <Text>Something went wrong.</Text>
-        </View>
-      );
-    }
     return (
       <Provider>
+        <Appbar.Header>
+          <Appbar.Content title='Stores' />
+          <Appbar.Action icon='magnify' onPress={() => { }} />
+          <Appbar.Action icon='plus' onPress={this.showAddStoreModal} />
+          <Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
+        </Appbar.Header>
         <View style={styles.HomePageWrapper}>
           <FlatList
             data={this.state.data}
@@ -142,16 +144,16 @@ class StoresPage extends PureComponent {
               >
                 <Card.Title
                   title={item.storeName} subtitle={item.dateToGo}
-                  right={() => <Button onPress={this.deleteStore.bind(this, item.id)}> Delete </Button>}
+                  right={() =>
+                    <Button
+                      onPress={this.deleteStore.bind(this, item.id)}
+                    >
+                      Delete
+                  </Button>
+                  }
                 />
               </Card>
             )}
-          />
-          <FAB
-            style={styles.fab}
-            small
-            icon="plus"
-            onPress={this.showAddStoreModal}
           />
         </View>
         <Portal>
@@ -172,8 +174,6 @@ class StoresPage extends PureComponent {
           </Dialog>
         </Portal>
       </Provider>
-
-
     );
   }
 }

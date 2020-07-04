@@ -1,8 +1,9 @@
-import React, { PureComponent } from 'react';
+import React, { PureComponent } from 'react'
 import { View, Text, ScrollView, RefreshControl } from 'react-native';
-import { styles } from './AllItemsPage.styles';
-import { List, Button, Checkbox, Provider } from 'react-native-paper'
-
+import { styles } from './AllItemsPage.styles'
+import { List, Button, Checkbox, Provider, Appbar } from 'react-native-paper'
+import {Picker} from '@react-native-community/picker'
+import { navigate } from '../../Utils/RootNavigation'
 import {
   db, selectAllArchivedItems, selectAllUnarchivedItems,
   changeToArchived, changeToUnarchived, deleteItem
@@ -15,7 +16,11 @@ class FoodPage extends PureComponent {
       showAddFoodModal: false,
       unarchivedData: [],
       archivedData: [],
-      isRefreshing: false
+      isRefreshing: false,
+      showAddAllItemModal: false,
+      itemNameText: '',
+      stores: [],
+      selectedStore: ''
     };
   }
 
@@ -23,6 +28,7 @@ class FoodPage extends PureComponent {
     this._unsubscribe = this.props.navigation.addListener('focus', () => {
       this.queryAllArchivedItems()
       this.queryAllUnarchivedItems()
+      this.queryAllStores()
     })
   }
 
@@ -32,6 +38,21 @@ class FoodPage extends PureComponent {
 
   componentWillUnmount = () => {
     this._unsubscribe();
+  }
+
+  queryAllStores() {
+    db.transaction(tx => {
+      tx.executeSql(
+        selectStores,
+        [],
+        (_, { rows: { _array } }) => {
+          this.setState({
+            stores: _array
+          })
+        },
+        () => console.debug("Error")
+      )
+    })
   }
 
   queryAllArchivedItems = () => {
@@ -66,7 +87,6 @@ class FoodPage extends PureComponent {
   }
 
   changeToUnarchivedCheckBox = (id) => {
-    console.debug('changing checkbox status')
     db.transaction(tx => {
       tx.executeSql(
         changeToUnarchived,
@@ -112,6 +132,18 @@ class FoodPage extends PureComponent {
     })
   }
 
+  showAddAllItemModal = () => {
+    this.setState({
+      showAddAllItemModal: true
+    })
+  }
+
+  hideAddAllItemModal = () => {
+    this.setState({
+      showAddAllItemModal: false
+    })
+  }
+
   forceRefresh = () => {
     this.setState({
       isRefreshing: true
@@ -134,17 +166,20 @@ class FoodPage extends PureComponent {
             {this.state.archivedData.map((item) => {
               return (
                 <List.Item
-                  left={() => <Checkbox.Item
-                    label=''
-                    status={item.isArchived ? 'checked' : 'unchecked'}
-                    onPress={this.changeToUnarchivedCheckBox.bind(this, item.id)}
-                  />}
-                  right={() =>
-                    <Button
-                      icon='dots-vertical'
-                      onPress={this.deleteItem.bind(this, item.id)}
+                  left={() => {
+                    <Checkbox.Item
+                      label=''
+                      status={item.isArchived ? 'checked' : 'unchecked'}
+                      onPress={this.changeToUnarchivedCheckBox.bind(this, item.id)}
                     />
-                  }
+                  }}
+                  right={() => {
+                    <Button
+                      onPress={this.deleteItem.bind(this, item.id)}
+                    >
+                      Delete
+                  </Button>
+                  }}
                   title={item.itemName}
                   key={item.id}
                 />
@@ -172,9 +207,10 @@ class FoodPage extends PureComponent {
               />}
               right={() =>
                 <Button
-                  icon='dots-vertical'
                   onPress={this.deleteItem.bind(this, item.id)}
-                />
+                >
+                  Delete
+              </Button>
               }
               title={item.itemName}
               description={item.dateToGo + " | " + item.storeName}
@@ -189,19 +225,31 @@ class FoodPage extends PureComponent {
       return <View />
     }
   }
+
+  renderPickerItems = () => {
+    if (this.state.stores.length > 0) {
+       return (
+         this.state.stores.map((item) => {
+           return(
+             <Picker.Item label={item.storeName} value={item.id} />
+           )
+         })
+       )
+    }
+  }
   render() {
     const archivedAccordianList = this.renderArchivedItems()
     const unarchivedAccordianList = this.renderUnarchivedItems()
+    const pickerValueList = this.renderPickerItems()
 
-    if (this.state.hasError) {
-      return (
-        <View style={styles.FoodPageWrapper}>
-          <Text>Something went wrong.</Text>
-        </View>
-      );
-    }
     return (
       <Provider>
+        <Appbar.Header>
+          <Appbar.Content title={'All Items'} />
+          <Appbar.Action icon='magnify' onPress={() => { }} />
+          <Appbar.Action icon='plus' onPress={this.showAddAllItemModal} />
+          <Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
+        </Appbar.Header>
         <ScrollView style={styles.FoodPageWrapper} refreshControl={
           <RefreshControl
             refreshing={this.state.isRefreshing}
@@ -217,6 +265,32 @@ class FoodPage extends PureComponent {
             {/* Checked off stuff */}
             {archivedAccordianList}
           </List.Section>
+          <Portal>
+            <Dialog
+              visible={this.state.showAddAllItemModal}
+              onDismiss={this.hideAddAllItemModal}>
+              <Dialog.Title>Add Item</Dialog.Title>
+              <Dialog.Content>
+                <TextInput
+                  placeholder={'Item Name'}
+                  onChangeText={text => this.setState({ itemNameText: text })}
+                />
+                <Picker
+                  selectedValue={this.state.selectedStore}
+                  onValueChange={(itemValue, itemIndex) => 
+                    this.setState({selectedStore: itemValue})
+                  }
+                  
+                >
+                  
+                </>
+              </Dialog.Content>
+              <Dialog.Actions>
+                <Button onPress={this.hideAddAllItemModal}>Cancel</Button>
+                <Button onPress={}>Done</Button>
+              </Dialog.Actions>
+            </Dialog>
+          </Portal>
         </ScrollView>
       </Provider>
     );

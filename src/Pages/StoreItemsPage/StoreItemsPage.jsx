@@ -1,18 +1,18 @@
-import React, { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import { styles } from './StoreItemsPage.styles';
+import React, { PureComponent } from 'react'
+import PropTypes from 'prop-types'
+import { styles } from './StoreItemsPage.styles'
 
-import { View, Text, ScrollView, TextInput, FlatList } from 'react-native';
-import { List, Card, Modal, Provider, Portal, Button, FAB, Dialog, Checkbox } from 'react-native-paper';
-import { Calendar } from 'react-native-calendars';
-import * as SQLite from 'expo-sqlite';
-
+import { View, ScrollView, TextInput, RefreshControl } from 'react-native';
+import {
+  List, Modal, Provider, Portal,
+  Button, FAB, Dialog, Checkbox, Appbar
+} from 'react-native-paper'
+import { Calendar } from 'react-native-calendars'
 import {
   db, deleteItem, selectUncheckedItems, insertItem, selectCheckedItems,
   changeToArchived, changeToUnarchived, updateDateToGo
-} from '../../Utils/SQLConstants';
-
-// const db = SQLite.openDatabase('grocerListPlus.db');
+} from '../../Utils/SQLConstants'
+import { navigate } from '../../Utils/RootNavigation';
 
 class StoreItemsPage extends PureComponent {
   constructor(props) {
@@ -25,6 +25,7 @@ class StoreItemsPage extends PureComponent {
       storeName: props.route.params.storeName,
       storeId: props.route.params.storeId,
       itemNameText: '',
+      isRefreshing: false,
       unarchivedData: [],
       archivedData: []
     };
@@ -124,7 +125,6 @@ class StoreItemsPage extends PureComponent {
         selectCheckedItems,
         [this.state.storeId],
         (_, { rows: { _array } }) => {
-          // console.debug(_array)
           this.setState({
             archivedData: _array
           })
@@ -178,6 +178,11 @@ class StoreItemsPage extends PureComponent {
     })
   }
 
+  forceRefresh = () => {
+    this.queryAllArchivedItemsInStore()
+    this.queryAllUnarchivedItemsInStore()
+  }
+
   renderArchivedItems = () => {
     if (this.state.archivedData.length > 0) {
       return (
@@ -196,9 +201,10 @@ class StoreItemsPage extends PureComponent {
                   />}
                   right={() =>
                     <Button
-                      icon='dots-vertical'
                       onPress={this.deleteItem.bind(this, item.id)}
-                    />
+                    >
+                      Delete
+                  </Button>
                   }
                   title={item.itemName}
                   key={item.id}
@@ -227,9 +233,10 @@ class StoreItemsPage extends PureComponent {
               />}
               right={() =>
                 <Button
-                  icon='dots-vertical'
                   onPress={this.deleteItem.bind(this, item.id)}
-                />
+                >
+                  Delete
+                </Button>
               }
               title={item.itemName}
               key={item.id}
@@ -248,23 +255,32 @@ class StoreItemsPage extends PureComponent {
     const archivedAccordianList = this.renderArchivedItems()
     const unarchivedAccordianList = this.renderUnarchivedItems()
 
-    if (this.state.hasError) {
-      return (
-        <View style={styles.StoreItemsPageWrapper}>
-          <Text>Something went wrong.</Text>
-        </View>
-      );
-    }
     return (
       <Provider>
-        <ScrollView style={styles.StoreItemsPageWrapper}>
+        <Appbar.Header>
+          <Appbar.BackAction onPress={() => { this.props.navigation.goBack() }} />
+          <Appbar.Content title={'Store Items'} subtitle={this.state.storeName} />
+          <Appbar.Action icon='magnify' onPress={() => { }} />
+          <Appbar.Action icon='plus' onPress={this.showAddItemModal} />
+          <Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
+        </Appbar.Header>
+        <ScrollView
+          style={styles.StoreItemsPageWrapper}
+          refreshControl={
+            <RefreshControl
+              refreshing={this.state.isRefreshing}
+              onRefresh={this.forceRefresh}
+            />
+          }
+        >
           {/* Store name and dates */}
 
           <View style={styles.TitleRowWrapper}>
-            <Text>
-              {this.state.storeName}
-            </Text>
-
+            <Button
+              onPress={this.showAddItemModal}
+            >
+              Add An Item
+            </Button>
             <Button
               onPress={this.showCalendarModal}
             >
@@ -273,11 +289,6 @@ class StoreItemsPage extends PureComponent {
           </View>
           {/* Showing data */}
           <List.Section>
-            <List.Item
-              title='Add An Item!'
-              onPress={this.showAddItemModal}
-            />
-
             {/* Unchecked off stuff*/}
             {unarchivedAccordianList}
 
@@ -303,7 +314,7 @@ class StoreItemsPage extends PureComponent {
                 // If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
                 firstDay={1}
                 // Hide day names. Default = false
-                hideDayNames={true}
+                hideDayNames={false}
                 // Show week numbers to the left. Default = false
                 showWeekNumbers={true}
                 // Handler which gets executed when press arrow icon left. It receive a callback can go back month
@@ -331,14 +342,7 @@ class StoreItemsPage extends PureComponent {
               </Dialog.Actions>
             </Dialog>
           </Portal>
-
         </ScrollView>
-        <FAB
-          style={styles.fab}
-          small
-          icon='plus'
-          onPress={this.showAddItemModal}
-        />
       </Provider>
 
     );
