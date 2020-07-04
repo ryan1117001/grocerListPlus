@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react'
 import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
-import { styles } from './AllItemsPage.styles'
-import { List, Button, Checkbox, Provider, Appbar, Portal, Dialog, Text } from 'react-native-paper'
+import { styles } from './InventoryPage.styles'
+import { List, Button, Checkbox, Provider, Appbar, Portal, Dialog, Text, Surface } from 'react-native-paper'
 import { Picker } from '@react-native-community/picker'
 import { navigate } from '../../Utils/RootNavigation'
 import {
@@ -10,7 +10,7 @@ import {
   insertItem
 } from '../../Utils/SQLConstants';
 
-class AllItemsPage extends PureComponent {
+class InventoryPage extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -180,36 +180,34 @@ class AllItemsPage extends PureComponent {
   renderArchivedItems = () => {
     if (this.state.archivedData.length > 0) {
       return (
-        <View>
-          <List.Accordion
-            title='Deleted Stuff'
-            left={props => <List.Icon {...props} icon='folder' />}
-          >
-            {this.state.archivedData.map((item) => {
-              return (
-                <List.Item
-                  left={() =>
-                    <Checkbox.Item
-                      label=''
-                      status={item.isArchived ? 'checked' : 'unchecked'}
-                      onPress={this.changeToUnarchivedCheckBox.bind(this, item.id)}
-                    />
-                  }
-                  right={() =>
-                    <Button
-                      onPress={this.deleteItem.bind(this, item.id)}
-                    >
-                      Delete
+        this.state.archivedData.map((item) => {
+          return (
+            <Surface
+              key={item.id}
+              style={styles.Surface}
+            >
+              <List.Item
+                left={() =>
+                  <Checkbox.Item
+                    label=''
+                    status={item.isArchived ? 'checked' : 'unchecked'}
+                    onPress={this.changeToUnarchivedCheckBox.bind(this, item.id)}
+                  />
+                }
+                right={() =>
+                  <Button
+                    onPress={this.deleteItem.bind(this, item.id)}
+                  >
+                    Delete
                   </Button>
-                  }
-                  description={item.dateToGo + " | " + item.storeName}
-                  title={item.itemName}
-                  key={item.id}
-                />
-              )
-            })}
-          </List.Accordion>
-        </View>
+                }
+                description={item.dateToGo + " | " + item.storeName}
+                title={item.itemName}
+                key={item.id}
+              />
+            </Surface>
+          )
+        })
       )
     }
     else {
@@ -222,24 +220,28 @@ class AllItemsPage extends PureComponent {
       return (
         this.state.unarchivedData.map((item) => {
           return (
-            <List.Item
-              left={() => <Checkbox.Item
-                label=''
-                status={item.isArchived ? 'checked' : 'unchecked'}
-                onPress={this.changeToArchivedCheckBox.bind(this, item.id)}
-              />}
-              right={() =>
-                <Button
-                  onPress={this.deleteItem.bind(this, item.id)}
-                >
-                  Delete
-              </Button>
-              }
-              title={item.itemName}
-              description={item.dateToGo + " | " + item.storeName}
+            <Surface
               key={item.id}
+              style={styles.Surface}>
+              <List.Item
+                left={() => <Checkbox.Item
+                  label=''
+                  status={item.isArchived ? 'checked' : 'unchecked'}
+                  onPress={this.changeToArchivedCheckBox.bind(this, item.id)}
+                />}
+                right={() =>
+                  <Button
+                    onPress={this.deleteItem.bind(this, item.id)}
+                  >
+                    Delete
+              </Button>
+                }
+                title={item.itemName}
+                description={item.dateToGo + " | " + item.storeName}
+                key={item.id}
 
-            />
+              />
+            </Surface>
           )
         })
       )
@@ -273,7 +275,7 @@ class AllItemsPage extends PureComponent {
           <Appbar.Action icon='plus' onPress={this.showAddAllItemModal} />
           <Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
         </Appbar.Header>
-        <ScrollView style={styles.AllItemsPageWrapper} refreshControl={
+        <ScrollView style={styles.InventoryPageWrapper} refreshControl={
           <RefreshControl
             refreshing={this.state.isRefreshing}
             onRefresh={this.forceRefresh}
@@ -282,11 +284,12 @@ class AllItemsPage extends PureComponent {
           {/* Showing data */}
           <List.Section>
 
+            {/* Checked off stuff */}
+            {archivedAccordianList}
+
             {/* Unchecked off stuff*/}
             {unarchivedAccordianList}
 
-            {/* Checked off stuff */}
-            {archivedAccordianList}
           </List.Section>
           <Portal>
             <Dialog
@@ -333,12 +336,12 @@ class AllItemsPage extends PureComponent {
   }
 }
 
-AllItemsPage.propTypes = {
+InventoryPage.propTypes = {
   // bla: PropTypes.string,
 };
 
-AllItemsPage.defaultProps = {
+InventoryPage.defaultProps = {
   // bla: 'test',
 };
 
-export default AllItemsPage;
+export default InventoryPage;

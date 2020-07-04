@@ -6,7 +6,7 @@ import { navigationRef } from './src/Utils/RootNavigation';
 
 import StoresPage from './src/Pages/StoresPage/StoresPage';
 import StoreItemsPage from './src/Pages/StoreItemsPage/StoreItemsPage'
-import AllItemsPage from './src/Pages/AllItemsPage/AllItemsPage';
+import InventoryPage from './src/Pages/InventoryPage/InventoryPage';
 import SettingsPage from './src/Pages/SettingsPage/SettingsPage';
 import {
   db, enableFK, createItemsTable, createStoresTable
@@ -29,10 +29,10 @@ function tabNavigator() {
         }}
       />
       <Tab.Screen
-        name='allItems'
-        component={AllItemsPage}
+        name='inventory'
+        component={InventoryPage}
         options={{
-          title: 'All Items',
+          title: 'Inventory',
           tabBarIcon: 'treasure-chest'
         }}
       />

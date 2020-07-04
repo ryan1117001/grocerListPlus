@@ -4,7 +4,7 @@ import { styles } from './StoreItemsPage.styles'
 import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
 import {
   List, Modal, Provider, Portal,
-  Button, Dialog, Checkbox, Appbar
+  Button, Dialog, Checkbox, Appbar, Surface
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
 import {
@@ -27,9 +27,6 @@ class StoreItemsPage extends PureComponent {
       unarchivedData: [],
       archivedData: []
     };
-
-    this.queryAllArchivedItemsInStore()
-    this.queryAllUnarchivedItemsInStore()
   }
 
   componentDidMount = () => {
@@ -198,33 +195,31 @@ class StoreItemsPage extends PureComponent {
   renderArchivedItems = () => {
     if (this.state.archivedData.length > 0) {
       return (
-        <View>
-          <List.Accordion
-            title='Deleted Stuff'
-            left={props => <List.Icon {...props} icon='folder' />}
-          >
-            {this.state.archivedData.map((item) => {
-              return (
-                <List.Item
-                  left={() => <Checkbox.Item
-                    label=''
-                    status={item.isArchived ? 'checked' : 'unchecked'}
-                    onPress={this.changeToUnarchivedCheckBox.bind(this, item.id)}
-                  />}
-                  right={() =>
-                    <Button
-                      onPress={this.deleteItem.bind(this, item.id)}
-                    >
-                      Delete
-                  </Button>
-                  }
-                  title={item.itemName}
-                  key={item.id}
-                />
-              )
-            })}
-          </List.Accordion>
-        </View>
+        this.state.archivedData.map((item) => {
+          return (
+            <Surface
+              style={styles.Surface}
+              key={item.id}
+            >
+              <List.Item
+                left={() => <Checkbox.Item
+                  label=''
+                  status={item.isArchived ? 'checked' : 'unchecked'}
+                  onPress={this.changeToUnarchivedCheckBox.bind(this, item.id)}
+                />}
+                right={() =>
+                  <Button
+                    onPress={this.deleteItem.bind(this, item.id)}
+                  >
+                    Delete
+                      </Button>
+                }
+                title={item.itemName}
+                key={item.id}
+              />
+            </Surface>
+          )
+        })
       )
     }
     else {
@@ -237,22 +232,24 @@ class StoreItemsPage extends PureComponent {
       return (
         this.state.unarchivedData.map((item) => {
           return (
-            <List.Item
-              left={() => <Checkbox.Item
-                label=''
-                status={item.isArchived ? 'checked' : 'unchecked'}
-                onPress={this.changeToArchivedCheckBox.bind(this, item.id)}
-              />}
-              right={() =>
-                <Button
-                  onPress={this.deleteItem.bind(this, item.id)}
-                >
-                  Delete
+            <Surface style={styles.Surface}>
+              <List.Item
+                left={() => <Checkbox.Item
+                  label=''
+                  status={item.isArchived ? 'checked' : 'unchecked'}
+                  onPress={this.changeToArchivedCheckBox.bind(this, item.id)}
+                />}
+                right={() =>
+                  <Button
+                    onPress={this.deleteItem.bind(this, item.id)}
+                  >
+                    Delete
                 </Button>
-              }
-              title={item.itemName}
-              key={item.id}
-            />
+                }
+                title={item.itemName}
+                key={item.id}
+              />
+            </Surface>
           )
         })
       )
@@ -269,7 +266,15 @@ class StoreItemsPage extends PureComponent {
 
     return (
       <Provider>
+        <Appbar.Header>
+          <Appbar.BackAction onPress={() => { this.props.navigation.goBack() }} />
+          <Appbar.Content subtitle={'Store Items'} title={this.state.storeName} />
+          <Appbar.Action icon='magnify' onPress={() => { }} />
+          <Appbar.Action icon='plus' onPress={this.showAddItemModal} />
+          <Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
+        </Appbar.Header>
         <ScrollView
+          style={styles.StoreItemsPageWrapper}
           refreshControl={
             <RefreshControl
               refreshing={this.state.isRefreshing}
