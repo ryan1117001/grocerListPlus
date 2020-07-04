@@ -232,7 +232,10 @@ class StoreItemsPage extends PureComponent {
       return (
         this.state.uninventoriedData.map((item) => {
           return (
-            <Surface style={styles.Surface}>
+            <Surface
+              style={styles.Surface}
+              key={item.id}
+            >
               <List.Item
                 left={() => <Checkbox.Item
                   label=''

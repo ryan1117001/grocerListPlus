@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react';
 import { ScrollView, View, FlatList, RefreshControl, TextInput } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { Card, Button, Dialog, Portal, Provider, Appbar, List, Surface } from 'react-native-paper';
+import { Button, Dialog, Portal, Provider, Appbar, List, Surface } from 'react-native-paper';
 import { navigate } from '../../Utils/RootNavigation';
 import {
   db, insertStore, selectStores, deleteStore, deleteItemsByStoreId

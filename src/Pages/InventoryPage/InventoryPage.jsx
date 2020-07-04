@@ -45,10 +45,13 @@ class InventoryPage extends PureComponent {
         selectStores,
         [],
         (_, { rows: { _array } }) => {
-          this.setState({
-            stores: _array,
-            selectedStoreId: _array[0].id
-          })
+
+          if (_array.length > 0) {
+            this.setState({
+              stores: _array,
+              selectedStoreId: _array[0].id
+            })
+          }
         },
         () => console.debug("Error")
       )
