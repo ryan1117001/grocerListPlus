@@ -9,7 +9,7 @@ import {
 import { Calendar } from 'react-native-calendars'
 import {
   db, deleteItem, selectUncheckedItems, insertItem, selectCheckedItems,
-  changeToArchived, changeToUnarchived, updateDateToGo
+  changeToInventoried, changeToUninventoried, updateDateToGo
 } from '../../Utils/SQLConstants';
 
 class StoreItemsPage extends PureComponent {
@@ -24,8 +24,8 @@ class StoreItemsPage extends PureComponent {
       storeId: props.route.params.storeId,
       itemNameText: '',
       isRefreshing: false,
-      unarchivedData: [],
-      archivedData: []
+      uninventoriedData: [],
+      inventoriedData: []
     };
   }
 
@@ -93,7 +93,7 @@ class StoreItemsPage extends PureComponent {
           [this.state.itemNameText, this.state.storeId],
           () => {
             console.debug('Success')
-            this.queryAllUnarchivedItemsInStore()
+            this.queryAllUninventoriedItemsInStore()
             this.hideAddItemModal()
             this.setState({
               itemNameText: ''
@@ -120,7 +120,7 @@ class StoreItemsPage extends PureComponent {
     })
   }
 
-  queryAllArchivedItemsInStore = () => {
+  queryAllInventoriedItemsInStore = () => {
     console.debug('all checked')
     db.transaction(tx => {
       tx.executeSql(
@@ -128,7 +128,7 @@ class StoreItemsPage extends PureComponent {
         [this.state.storeId],
         (_, { rows: { _array } }) => {
           this.setState({
-            archivedData: _array
+            inventoriedData: _array
           })
         },
         () => console.debug('Error')
@@ -136,11 +136,11 @@ class StoreItemsPage extends PureComponent {
     })
   }
 
-  changeToArchivedCheckBox = (id) => {
+  changeToInventoriedCheckBox = (id) => {
     console.debug('changing checkbox status')
     db.transaction(tx => {
       tx.executeSql(
-        changeToArchived, [id]
+        changeToInventoried, [id]
       )
     },
       () => console.debug('error'),
@@ -149,11 +149,11 @@ class StoreItemsPage extends PureComponent {
       })
   }
 
-  changeToUnarchivedCheckBox = (id) => {
+  changeToUninventoriedCheckBox = (id) => {
     console.debug('changing checkbox status')
     db.transaction(tx => {
       tx.executeSql(
-        changeToUnarchived,
+        changeToUninventoried,
         [id],
         () => console.debug('success'),
         () => console.debug('error')
@@ -165,7 +165,7 @@ class StoreItemsPage extends PureComponent {
       })
   }
 
-  queryAllUnarchivedItemsInStore = () => {
+  queryAllUninventoriedItemsInStore = () => {
     console.debug('all unchecked')
     db.transaction(tx => {
       tx.executeSql(
@@ -173,7 +173,7 @@ class StoreItemsPage extends PureComponent {
         [this.state.storeId],
         (_, { rows: { _array } }) => {
           this.setState({
-            unarchivedData: _array
+            uninventoriedData: _array
           })
         },
         () => console.debug('Error')
@@ -185,17 +185,17 @@ class StoreItemsPage extends PureComponent {
     this.setState({
       isRefreshing: true
     })
-    this.queryAllArchivedItemsInStore()
-    this.queryAllUnarchivedItemsInStore()
+    this.queryAllInventoriedItemsInStore()
+    this.queryAllUninventoriedItemsInStore()
     this.setState({
       isRefreshing: false
     })
   }
 
-  renderArchivedItems = () => {
-    if (this.state.archivedData.length > 0) {
+  renderInventoriedItems = () => {
+    if (this.state.inventoriedData.length > 0) {
       return (
-        this.state.archivedData.map((item) => {
+        this.state.inventoriedData.map((item) => {
           return (
             <Surface
               style={styles.Surface}
@@ -204,8 +204,8 @@ class StoreItemsPage extends PureComponent {
               <List.Item
                 left={() => <Checkbox.Item
                   label=''
-                  status={item.isArchived ? 'checked' : 'unchecked'}
-                  onPress={this.changeToUnarchivedCheckBox.bind(this, item.id)}
+                  status={item.isInventoried ? 'checked' : 'unchecked'}
+                  onPress={this.changeToUninventoriedCheckBox.bind(this, item.id)}
                 />}
                 right={() =>
                   <Button
@@ -227,17 +227,17 @@ class StoreItemsPage extends PureComponent {
     }
   }
 
-  renderUnarchivedItems = () => {
-    if (this.state.unarchivedData.length > 0) {
+  renderUninventoriedItems = () => {
+    if (this.state.uninventoriedData.length > 0) {
       return (
-        this.state.unarchivedData.map((item) => {
+        this.state.uninventoriedData.map((item) => {
           return (
             <Surface style={styles.Surface}>
               <List.Item
                 left={() => <Checkbox.Item
                   label=''
-                  status={item.isArchived ? 'checked' : 'unchecked'}
-                  onPress={this.changeToArchivedCheckBox.bind(this, item.id)}
+                  status={item.isInventoried ? 'checked' : 'unchecked'}
+                  onPress={this.changeToInventoriedCheckBox.bind(this, item.id)}
                 />}
                 right={() =>
                   <Button
@@ -261,8 +261,8 @@ class StoreItemsPage extends PureComponent {
 
   render() {
 
-    const archivedAccordianList = this.renderArchivedItems()
-    const unarchivedAccordianList = this.renderUnarchivedItems()
+    const inventoriedAccordianList = this.renderInventoriedItems()
+    const uninventoriedAccordianList = this.renderUninventoriedItems()
 
     return (
       <Provider>
@@ -300,10 +300,10 @@ class StoreItemsPage extends PureComponent {
           {/* Showing data */}
           <List.Section>
             {/* Unchecked off stuff*/}
-            {unarchivedAccordianList}
+            {uninventoriedAccordianList}
 
             {/* Checked off stuff */}
-            {archivedAccordianList}
+            {inventoriedAccordianList}
           </List.Section>
 
 

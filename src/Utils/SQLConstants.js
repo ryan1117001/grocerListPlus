@@ -18,7 +18,7 @@ export const createItemsTable = `
 CREATE TABLE IF NOT EXISTS items (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     itemName TEXT,
-    isArchived INTEGER,
+    isInventoried INTEGER,
     storeId INTEGER NOT NULL,
     FOREIGN KEY (storeId)
         REFERENCES stores(id)
@@ -32,18 +32,18 @@ export const selectStores = 'SELECT * FROM stores;'
 export const updateDateToGo = 'UPDATE stores SET dateToGo=? WHERE id = ?'
 
 // Items
-export const insertItem = 'INSERT INTO items (itemName, isArchived, storeId) values (?,0,?)'
+export const insertItem = 'INSERT INTO items (itemName, isInventoried, storeId) values (?,0,?)'
 export const deleteItems = 'DELETE FROM items;'
 export const deleteItemsByStoreId = 'DELETE FROM items WHERE storeId = ?'
 export const deleteItem = 'DELETE FROM items WHERE id=?;'
 export const selectItems = 'SELECT * FROM items;'
-export const selectUncheckedItems = 'SELECT * FROM items WHERE isArchived=0 AND storeId=?'
-export const selectCheckedItems = 'SELECT * FROM items WHERE isArchived=1 AND storeId=?'
-export const selectAllArchivedItems = 'SELECT * FROM stores INNER JOIN items ON items.storeId = stores.id WHERE isArchived = 1;'
-export const selectAllUnarchivedItems = 'SELECT * FROM stores INNER JOIN items ON items.storeId = stores.id WHERE isArchived = 0;'
+export const selectUncheckedItems = 'SELECT * FROM items WHERE isInventoried=0 AND storeId=?'
+export const selectCheckedItems = 'SELECT * FROM items WHERE isInventoried=1 AND storeId=?'
+export const selectAllInventoriedItems = 'SELECT * FROM stores INNER JOIN items ON items.storeId = stores.id WHERE isInventoried = 1;'
+export const selectAllUninventoriedItems = 'SELECT * FROM stores INNER JOIN items ON items.storeId = stores.id WHERE isInventoried = 0;'
 // Checkbox status
-export const changeToArchived = 'UPDATE items SET isArchived = 1 WHERE id = ?;'
-export const changeToUnarchived = 'UPDATE items SET isArchived = 0 WHERE id = ?;'
+export const changeToInventoried = 'UPDATE items SET isInventoried = 1 WHERE id = ?;'
+export const changeToUninventoried = 'UPDATE items SET isInventoried = 0 WHERE id = ?;'
 
 // Drop Tables
 export const dropStoreTable = 'DROP TABLE stores;'
