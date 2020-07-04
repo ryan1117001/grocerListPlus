@@ -1,24 +1,16 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { styles } from './StoreItemsPage.styles';
-
-import { View, Text, ScrollView, TextInput, FlatList } from 'react-native';
-import { List, Card, Modal, Provider, Portal, Button, FAB, Dialog, Checkbox } from 'react-native-paper';
-import { Calendar } from 'react-native-calendars';
-import * as SQLite from 'expo-sqlite';
-
+import { styles } from './StoreItemsPage.styles'
 import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
 import {
   List, Modal, Provider, Portal,
-  Button, Dialog, Checkbox, Appbar
+  Button, Dialog, Checkbox, Appbar, Surface
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
 import {
   db, deleteItem, selectUncheckedItems, insertItem, selectCheckedItems,
-  changeToArchived, changeToUnarchived, updateDateToGo
+  changeToInventoried, changeToUninventoried, updateDateToGo
 } from '../../Utils/SQLConstants';
-
-// const db = SQLite.openDatabase('grocerListPlus.db');
 
 class StoreItemsPage extends PureComponent {
   constructor(props) {
@@ -31,12 +23,10 @@ class StoreItemsPage extends PureComponent {
       storeName: props.route.params.storeName,
       storeId: props.route.params.storeId,
       itemNameText: '',
-      unarchivedData: [],
-      archivedData: []
+      isRefreshing: false,
+      uninventoriedData: [],
+      inventoriedData: []
     };
-
-    this.queryAllArchivedItemsInStore()
-    this.queryAllUnarchivedItemsInStore()
   }
 
   componentDidMount = () => {
@@ -103,7 +93,7 @@ class StoreItemsPage extends PureComponent {
           [this.state.itemNameText, this.state.storeId],
           () => {
             console.debug('Success')
-            this.queryAllUnarchivedItemsInStore()
+            this.queryAllUninventoriedItemsInStore()
             this.hideAddItemModal()
             this.setState({
               itemNameText: ''
@@ -130,16 +120,15 @@ class StoreItemsPage extends PureComponent {
     })
   }
 
-  queryAllArchivedItemsInStore = () => {
+  queryAllInventoriedItemsInStore = () => {
     console.debug('all checked')
     db.transaction(tx => {
       tx.executeSql(
         selectCheckedItems,
         [this.state.storeId],
         (_, { rows: { _array } }) => {
-          // console.debug(_array)
           this.setState({
-            archivedData: _array
+            inventoriedData: _array
           })
         },
         () => console.debug('Error')
@@ -147,11 +136,11 @@ class StoreItemsPage extends PureComponent {
     })
   }
 
-  changeToArchivedCheckBox = (id) => {
+  changeToInventoriedCheckBox = (id) => {
     console.debug('changing checkbox status')
     db.transaction(tx => {
       tx.executeSql(
-        changeToArchived, [id]
+        changeToInventoried, [id]
       )
     },
       () => console.debug('error'),
@@ -160,11 +149,11 @@ class StoreItemsPage extends PureComponent {
       })
   }
 
-  changeToUnarchivedCheckBox = (id) => {
+  changeToUninventoriedCheckBox = (id) => {
     console.debug('changing checkbox status')
     db.transaction(tx => {
       tx.executeSql(
-        changeToUnarchived,
+        changeToUninventoried,
         [id],
         () => console.debug('success'),
         () => console.debug('error')
@@ -176,7 +165,7 @@ class StoreItemsPage extends PureComponent {
       })
   }
 
-  queryAllUnarchivedItemsInStore = () => {
+  queryAllUninventoriedItemsInStore = () => {
     console.debug('all unchecked')
     db.transaction(tx => {
       tx.executeSql(
@@ -184,7 +173,7 @@ class StoreItemsPage extends PureComponent {
         [this.state.storeId],
         (_, { rows: { _array } }) => {
           this.setState({
-            unarchivedData: _array
+            uninventoriedData: _array
           })
         },
         () => console.debug('Error')
@@ -196,42 +185,41 @@ class StoreItemsPage extends PureComponent {
     this.setState({
       isRefreshing: true
     })
-    this.queryAllArchivedItemsInStore()
-    this.queryAllUnarchivedItemsInStore()
+    this.queryAllInventoriedItemsInStore()
+    this.queryAllUninventoriedItemsInStore()
     this.setState({
       isRefreshing: false
     })
   }
 
-  renderArchivedItems = () => {
-    if (this.state.archivedData.length > 0) {
+  renderInventoriedItems = () => {
+    if (this.state.inventoriedData.length > 0) {
       return (
-        <View>
-          <List.Accordion
-            title='Deleted Stuff'
-            left={props => <List.Icon {...props} icon='folder' />}
-          >
-            {this.state.archivedData.map((item) => {
-              return (
-                <List.Item
-                  left={() => <Checkbox.Item
-                    label=''
-                    status={item.isArchived ? 'checked' : 'unchecked'}
-                    onPress={this.changeToUnarchivedCheckBox.bind(this, item.id)}
-                  />}
-                  right={() =>
-                    <Button
-                      icon='dots-vertical'
-                      onPress={this.deleteItem.bind(this, item.id)}
-                    />
-                  }
-                  title={item.itemName}
-                  key={item.id}
-                />
-              )
-            })}
-          </List.Accordion>
-        </View>
+        this.state.inventoriedData.map((item) => {
+          return (
+            <Surface
+              style={styles.Surface}
+              key={item.id}
+            >
+              <List.Item
+                left={() => <Checkbox.Item
+                  label=''
+                  status={item.isInventoried ? 'checked' : 'unchecked'}
+                  onPress={this.changeToUninventoriedCheckBox.bind(this, item.id)}
+                />}
+                right={() =>
+                  <Button
+                    onPress={this.deleteItem.bind(this, item.id)}
+                  >
+                    Delete
+                      </Button>
+                }
+                title={item.itemName}
+                key={item.id}
+              />
+            </Surface>
+          )
+        })
       )
     }
     else {
@@ -239,26 +227,32 @@ class StoreItemsPage extends PureComponent {
     }
   }
 
-  renderUnarchivedItems = () => {
-    if (this.state.unarchivedData.length > 0) {
+  renderUninventoriedItems = () => {
+    if (this.state.uninventoriedData.length > 0) {
       return (
-        this.state.unarchivedData.map((item) => {
+        this.state.uninventoriedData.map((item) => {
           return (
-            <List.Item
-              left={() => <Checkbox.Item
-                label=''
-                status={item.isArchived ? 'checked' : 'unchecked'}
-                onPress={this.changeToArchivedCheckBox.bind(this, item.id)}
-              />}
-              right={() =>
-                <Button
-                  icon='dots-vertical'
-                  onPress={this.deleteItem.bind(this, item.id)}
-                />
-              }
-              title={item.itemName}
+            <Surface
+              style={styles.Surface}
               key={item.id}
-            />
+            >
+              <List.Item
+                left={() => <Checkbox.Item
+                  label=''
+                  status={item.isInventoried ? 'checked' : 'unchecked'}
+                  onPress={this.changeToInventoriedCheckBox.bind(this, item.id)}
+                />}
+                right={() =>
+                  <Button
+                    onPress={this.deleteItem.bind(this, item.id)}
+                  >
+                    Delete
+                </Button>
+                }
+                title={item.itemName}
+                key={item.id}
+              />
+            </Surface>
           )
         })
       )
@@ -270,26 +264,36 @@ class StoreItemsPage extends PureComponent {
 
   render() {
 
-    const archivedAccordianList = this.renderArchivedItems()
-    const unarchivedAccordianList = this.renderUnarchivedItems()
+    const inventoriedAccordianList = this.renderInventoriedItems()
+    const uninventoriedAccordianList = this.renderUninventoriedItems()
 
-    if (this.state.hasError) {
-      return (
-        <View style={styles.StoreItemsPageWrapper}>
-          <Text>Something went wrong.</Text>
-        </View>
-      );
-    }
     return (
       <Provider>
-        <ScrollView style={styles.StoreItemsPageWrapper}>
+        <Appbar.Header>
+          <Appbar.BackAction onPress={() => { this.props.navigation.goBack() }} />
+          <Appbar.Content subtitle={'Store Items'} title={this.state.storeName} />
+          <Appbar.Action icon='magnify' onPress={() => { }} />
+          <Appbar.Action icon='plus' onPress={this.showAddItemModal} />
+          <Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
+        </Appbar.Header>
+        <ScrollView
+          style={styles.StoreItemsPageWrapper}
+          refreshControl={
+            <RefreshControl
+              refreshing={this.state.isRefreshing}
+              onRefresh={this.forceRefresh}
+            />
+          }
+          style={styles.StoreItemsPageWrapper}
+        >
           {/* Store name and dates */}
 
           <View style={styles.TitleRowWrapper}>
-            <Text>
-              {this.state.storeName}
-            </Text>
-
+            <Button
+              onPress={this.showAddItemModal}
+            >
+              Add An Item
+            </Button>
             <Button
               onPress={this.showCalendarModal}
             >
@@ -298,16 +302,11 @@ class StoreItemsPage extends PureComponent {
           </View>
           {/* Showing data */}
           <List.Section>
-            <List.Item
-              title='Add An Item!'
-              onPress={this.showAddItemModal}
-            />
-
             {/* Unchecked off stuff*/}
-            {unarchivedAccordianList}
+            {uninventoriedAccordianList}
 
             {/* Checked off stuff */}
-            {archivedAccordianList}
+            {inventoriedAccordianList}
           </List.Section>
 
 
@@ -328,7 +327,7 @@ class StoreItemsPage extends PureComponent {
                 // If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
                 firstDay={1}
                 // Hide day names. Default = false
-                hideDayNames={true}
+                hideDayNames={false}
                 // Show week numbers to the left. Default = false
                 showWeekNumbers={true}
                 // Handler which gets executed when press arrow icon left. It receive a callback can go back month
@@ -356,14 +355,7 @@ class StoreItemsPage extends PureComponent {
               </Dialog.Actions>
             </Dialog>
           </Portal>
-
         </ScrollView>
-        <FAB
-          style={styles.fab}
-          small
-          icon='plus'
-          onPress={this.showAddItemModal}
-        />
       </Provider>
 
     );

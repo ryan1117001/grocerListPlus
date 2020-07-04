@@ -1,21 +1,21 @@
 import React, { PureComponent } from 'react'
 import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
-import { styles } from './AllItemsPage.styles'
-import { List, Button, Checkbox, Provider, Appbar, Portal, Dialog, Text } from 'react-native-paper'
+import { styles } from './InventoryPage.styles'
+import { List, Button, Checkbox, Provider, Appbar, Portal, Dialog, Text, Surface } from 'react-native-paper'
 import { Picker } from '@react-native-community/picker'
 import { navigate } from '../../Utils/RootNavigation'
 import {
-  db, selectAllArchivedItems, selectAllUnarchivedItems,
-  changeToArchived, changeToUnarchived, deleteItem, selectStores,
+  db, selectAllInventoriedItems, selectAllUninventoriedItems,
+  changeToInventoried, changeToUninventoried, deleteItem, selectStores,
   insertItem
 } from '../../Utils/SQLConstants';
 
-class AllItemsPage extends PureComponent {
+class InventoryPage extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      unarchivedData: [],
-      archivedData: [],
+      uninventoriedData: [],
+      inventoriedData: [],
       isRefreshing: false,
       showAddAllItemModal: false,
       itemNameText: '',
@@ -45,24 +45,27 @@ class AllItemsPage extends PureComponent {
         selectStores,
         [],
         (_, { rows: { _array } }) => {
-          this.setState({
-            stores: _array,
-            selectedStoreId: _array[0].id
-          })
+
+          if (_array.length > 0) {
+            this.setState({
+              stores: _array,
+              selectedStoreId: _array[0].id
+            })
+          }
         },
         () => console.debug("Error")
       )
     })
   }
 
-  queryAllArchivedItems = () => {
+  queryAllInventoriedItems = () => {
     db.transaction(tx => {
       tx.executeSql(
-        selectAllArchivedItems,
+        selectAllInventoriedItems,
         [],
         (_, { rows: { _array } }) => {
           this.setState({
-            archivedData: _array
+            inventoriedData: _array
           })
         },
         () => console.debug('Error')
@@ -70,10 +73,10 @@ class AllItemsPage extends PureComponent {
     })
   }
 
-  changeToArchivedCheckBox = (id) => {
+  changeToInventoriedCheckBox = (id) => {
     db.transaction(tx => {
       tx.executeSql(
-        changeToArchived,
+        changeToInventoried,
         [id],
         () => {
           console.debug('success')
@@ -85,11 +88,10 @@ class AllItemsPage extends PureComponent {
 
   }
 
-  changeToUnarchivedCheckBox = (id) => {
-    console.debug('changing checkbox status')
+  changeToUninventoriedCheckBox = (id) => {
     db.transaction(tx => {
       tx.executeSql(
-        changeToUnarchived,
+        changeToUninventoried,
         [id],
         () => {
           console.debug('success')
@@ -100,14 +102,14 @@ class AllItemsPage extends PureComponent {
     })
   }
 
-  queryAllUnarchivedItems = () => {
+  queryAllUninventoriedItems = () => {
     db.transaction(tx => {
       tx.executeSql(
-        selectAllUnarchivedItems,
+        selectAllUninventoriedItems,
         [],
         (_, { rows: { _array } }) => {
           this.setState({
-            unarchivedData: _array
+            uninventoriedData: _array
           })
         },
         () => console.debug('Error')
@@ -138,7 +140,7 @@ class AllItemsPage extends PureComponent {
           [this.state.itemNameText, this.state.selectedStoreId],
           () => {
             console.debug('success')
-            this.queryAllUnarchivedItems()
+            this.queryAllUninventoriedItems()
             this.hideAddAllItemModal()
             this.setState({
               itemNameText: '',
@@ -170,48 +172,45 @@ class AllItemsPage extends PureComponent {
     this.setState({
       isRefreshing: true
     })
-    this.queryAllArchivedItems()
-    this.queryAllUnarchivedItems()
+    this.queryAllInventoriedItems()
+    this.queryAllUninventoriedItems()
     this.queryAllStores()
     this.setState({
       isRefreshing: false,
     })
   }
 
-  renderArchivedItems = () => {
-    if (this.state.archivedData.length > 0) {
+  renderInventoriedItems = () => {
+    if (this.state.inventoriedData.length > 0) {
       return (
-        <View>
-          <List.Accordion
-            title='Deleted Stuff'
-            left={props => <List.Icon {...props} icon='folder' />}
-          >
-            {this.state.archivedData.map((item) => {
-              return (
-                <List.Item
-                  left={() =>
-                    <Checkbox.Item
-                      label=''
-                      status={item.isArchived ? 'checked' : 'unchecked'}
-                      onPress={this.changeToUnarchivedCheckBox.bind(this, item.id)}
-                    />
-                  }
-                  right={() =>
-                    <Button
-                      icon='dots-vertical'
-                      onPress={this.deleteItem.bind(this, item.id)}
-                    >
-                      Delete
+        this.state.inventoriedData.map((item) => {
+          return (
+            <Surface
+              key={item.id}
+              style={styles.Surface}
+            >
+              <List.Item
+                left={() =>
+                  <Checkbox.Item
+                    label=''
+                    status={item.isInventoried ? 'checked' : 'unchecked'}
+                    onPress={this.changeToUninventoriedCheckBox.bind(this, item.id)}
+                  />
+                }
+                right={() =>
+                  <Button
+                    onPress={this.deleteItem.bind(this, item.id)}
+                  >
+                    Delete
                   </Button>
-                  }
-                  description={item.dateToGo + " | " + item.storeName}
-                  title={item.itemName}
-                  key={item.id}
-                />
-              )
-            })}
-          </List.Accordion>
-        </View>
+                }
+                description={item.dateToGo + " | " + item.storeName}
+                title={item.itemName}
+                key={item.id}
+              />
+            </Surface>
+          )
+        })
       )
     }
     else {
@@ -219,28 +218,33 @@ class AllItemsPage extends PureComponent {
     }
   }
 
-  renderUnarchivedItems = () => {
-    if (this.state.unarchivedData.length > 0) {
+  renderUninventoriedItems = () => {
+    if (this.state.uninventoriedData.length > 0) {
       return (
-        this.state.unarchivedData.map((item) => {
+        this.state.uninventoriedData.map((item) => {
           return (
-            <List.Item
-              left={() => <Checkbox.Item
-                label=''
-                status={item.isArchived ? 'checked' : 'unchecked'}
-                onPress={this.changeToArchivedCheckBox.bind(this, item.id)}
-              />}
-              right={() =>
-                <Button
-                  icon='dots-vertical'
-                  onPress={this.deleteItem.bind(this, item.id)}
-                />
-              }
-              title={item.itemName}
-              description={item.dateToGo + " | " + item.storeName}
+            <Surface
               key={item.id}
+              style={styles.Surface}>
+              <List.Item
+                left={() => <Checkbox.Item
+                  label=''
+                  status={item.isInventoried ? 'checked' : 'unchecked'}
+                  onPress={this.changeToInventoriedCheckBox.bind(this, item.id)}
+                />}
+                right={() =>
+                  <Button
+                    onPress={this.deleteItem.bind(this, item.id)}
+                  >
+                    Delete
+              </Button>
+                }
+                title={item.itemName}
+                description={item.dateToGo + " | " + item.storeName}
+                key={item.id}
 
-            />
+              />
+            </Surface>
           )
         })
       )
@@ -262,16 +266,10 @@ class AllItemsPage extends PureComponent {
     }
   }
   render() {
-    const archivedAccordianList = this.renderArchivedItems()
-    const unarchivedAccordianList = this.renderUnarchivedItems()
+    const inventoriedAccordianList = this.renderInventoriedItems()
+    const uninventoriedAccordianList = this.renderUninventoriedItems()
+    const pickerValueList = this.renderPickerItems()
 
-    if (this.state.hasError) {
-      return (
-        <View style={styles.FoodPageWrapper}>
-          <Text>Something went wrong.</Text>
-        </View>
-      );
-    }
     return (
       <Provider>
         <Appbar.Header>
@@ -280,7 +278,7 @@ class AllItemsPage extends PureComponent {
           <Appbar.Action icon='plus' onPress={this.showAddAllItemModal} />
           <Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
         </Appbar.Header>
-        <ScrollView style={styles.AllItemsPageWrapper} refreshControl={
+        <ScrollView style={styles.InventoryPageWrapper} refreshControl={
           <RefreshControl
             refreshing={this.state.isRefreshing}
             onRefresh={this.forceRefresh}
@@ -289,13 +287,13 @@ class AllItemsPage extends PureComponent {
           {/* Showing data */}
           <List.Section>
 
-            {/* Unchecked off stuff*/}
-            {unarchivedAccordianList}
-
             {/* Checked off stuff */}
-            {archivedAccordianList}
-          </List.Section>
+            {inventoriedAccordianList}
 
+            {/* Unchecked off stuff*/}
+            {uninventoriedAccordianList}
+
+          </List.Section>
           <Portal>
             <Dialog
               visible={this.state.showAddAllItemModal}
@@ -341,12 +339,12 @@ class AllItemsPage extends PureComponent {
   }
 }
 
-AllItemsPage.propTypes = {
+InventoryPage.propTypes = {
   // bla: PropTypes.string,
 };
 
-AllItemsPage.defaultProps = {
+InventoryPage.defaultProps = {
   // bla: 'test',
 };
 
-export default AllItemsPage;
+export default InventoryPage;
