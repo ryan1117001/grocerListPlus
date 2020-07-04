@@ -1,18 +1,16 @@
-import React, { PureComponent } from 'react'
-import PropTypes from 'prop-types'
+import React, { PureComponent } from 'react';
+import PropTypes from 'prop-types';
 import { styles } from './StoreItemsPage.styles'
-
-import { View, ScrollView, TextInput, RefreshControl } from 'react-native';
+import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
 import {
   List, Modal, Provider, Portal,
-  Button, FAB, Dialog, Checkbox, Appbar
+  Button, Dialog, Checkbox, Appbar
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
 import {
   db, deleteItem, selectUncheckedItems, insertItem, selectCheckedItems,
   changeToArchived, changeToUnarchived, updateDateToGo
-} from '../../Utils/SQLConstants'
-import { navigate } from '../../Utils/RootNavigation';
+} from '../../Utils/SQLConstants';
 
 class StoreItemsPage extends PureComponent {
   constructor(props) {
@@ -34,13 +32,19 @@ class StoreItemsPage extends PureComponent {
     this.queryAllUnarchivedItemsInStore()
   }
 
-  componentDidMount = () => { }
+  componentDidMount = () => {
+    this._unsubscribe = this.props.navigation.addListener('focus', () => {
+      this.forceRefresh()
+    })
+  }
 
   componentDidCatch(error, info) { }
 
   componentDidUpdate = () => { }
 
-  componentWillUnmount = () => { }
+  componentWillUnmount = () => {
+    this._unsubscribe();
+  }
 
   hideCalendarModal = () => {
     this.setState({
@@ -110,12 +114,13 @@ class StoreItemsPage extends PureComponent {
       tx.executeSql(
         deleteItem,
         [id],
-        () => console.debug('success'),
+        () => {
+          console.debug('success')
+          this.forceRefresh()
+        },
         () => console.debug('error')
       )
     })
-    this.queryAllArchivedItemsInStore()
-    this.queryAllUnarchivedItemsInStore()
   }
 
   queryAllArchivedItemsInStore = () => {
@@ -140,9 +145,11 @@ class StoreItemsPage extends PureComponent {
       tx.executeSql(
         changeToArchived, [id]
       )
-    })
-    this.queryAllArchivedItemsInStore()
-    this.queryAllUnarchivedItemsInStore()
+    },
+      () => console.debug('error'),
+      () => {
+        this.forceRefresh()
+      })
   }
 
   changeToUnarchivedCheckBox = (id) => {
@@ -157,8 +164,7 @@ class StoreItemsPage extends PureComponent {
     },
       (error) => console.debug(error),
       () => {
-        this.queryAllArchivedItemsInStore()
-        this.queryAllUnarchivedItemsInStore()
+        this.forceRefresh()
       })
   }
 
@@ -179,8 +185,14 @@ class StoreItemsPage extends PureComponent {
   }
 
   forceRefresh = () => {
+    this.setState({
+      isRefreshing: true
+    })
     this.queryAllArchivedItemsInStore()
     this.queryAllUnarchivedItemsInStore()
+    this.setState({
+      isRefreshing: false
+    })
   }
 
   renderArchivedItems = () => {
@@ -257,21 +269,14 @@ class StoreItemsPage extends PureComponent {
 
     return (
       <Provider>
-        <Appbar.Header>
-          <Appbar.BackAction onPress={() => { this.props.navigation.goBack() }} />
-          <Appbar.Content title={'Store Items'} subtitle={this.state.storeName} />
-          <Appbar.Action icon='magnify' onPress={() => { }} />
-          <Appbar.Action icon='plus' onPress={this.showAddItemModal} />
-          <Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
-        </Appbar.Header>
         <ScrollView
-          style={styles.StoreItemsPageWrapper}
           refreshControl={
             <RefreshControl
               refreshing={this.state.isRefreshing}
               onRefresh={this.forceRefresh}
             />
           }
+          style={styles.StoreItemsPageWrapper}
         >
           {/* Store name and dates */}
 
