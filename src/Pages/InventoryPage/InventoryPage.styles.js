@@ -1,10 +1,17 @@
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-  FoodPageWrapper: {
+  InventoryPagePageWrapper: {
     flex: 1
   },
-  fab: {
+  dialogTextInput: {
+    marginBottom: 25
+  },
+  Surface: {
+    marginVertical: 1,
+    elevation: 4,
+  },
+  FAB: {
     position: 'absolute',
     right: 0,
     bottom: 0,

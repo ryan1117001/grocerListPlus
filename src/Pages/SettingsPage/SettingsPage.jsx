@@ -1,14 +1,8 @@
 import React, { PureComponent } from 'react';
-import { View, Text, FlatList } from 'react-native';
-import PropTypes from 'prop-types';
-import { Card, Button, List } from 'react-native-paper';
+import { View } from 'react-native';
+import { List, Appbar } from 'react-native-paper';
 import * as styles from './SettingsPage.styles';
-//import { SettingsPageWrapper } from './SettingsPage.styles';
-import * as SQLite from 'expo-sqlite';
-
-import { deleteStores, deleteItems, dropItemsTable, dropStoreTable } from '../../Utils/SQLConstants';
-
-const db = SQLite.openDatabase("grocerListPlus.db");
+import { db, deleteStores, deleteItems, dropItemsTable, dropStoreTable } from '../../Utils/SQLConstants';
 
 const SETTINGS = [
   {
@@ -38,34 +32,15 @@ class SettingsPage extends PureComponent {
     };
   }
 
-  componentDidMount = () => {
-    console.debug('SettingsPage mounted');
-  }
+  componentDidMount = () => { }
 
-  static getDerivedStateFromError(error) {
-    // getDerivedStateFromError -> Update state so the next render will show the fallback UI.
-    return { hasError: true };
-  }
+  componentDidCatch(error, info) { }
 
-  componentDidCatch(error, info) {
-    // You can also log the error to an error reporting service
-  }
+  getSnapshotBeforeUpdate = (prevProps, prevState) => { }
 
-  // getDerivedStateFromProps = (nextProps, prevState) => {
-  //   console.debug('SettingsPage getDerivedStateFromProps', nextProps, prevState);
-  // }
+  componentDidUpdate = () => { }
 
-  getSnapshotBeforeUpdate = (prevProps, prevState) => {
-    console.debug('SettingsPage getSnapshotBeforeUpdate', prevProps, prevState);
-  }
-
-  componentDidUpdate = () => {
-    console.debug('SettingsPage did update');
-  }
-
-  componentWillUnmount = () => {
-    console.debug('SettingsPage will unmount');
-  }
+  componentWillUnmount = () => { }
 
   removeAllStores = () => {
     console.debug('Removing all stores')
@@ -113,22 +88,20 @@ class SettingsPage extends PureComponent {
   }
 
   render() {
-    if (this.state.hasError) {
-      return (
-        <View style={styles.SettingsPageWrapper}>
-          <Text>Something went wrong.</Text>
-        </View>
-      );
-    }
     return (
       <View style={styles.SettingsPageWrapper}>
+        <Appbar.Header>
+          <Appbar.BackAction onPress={() => { this.props.navigation.goBack() }} />
+          <Appbar.Content title={'All Items'} />
+        </Appbar.Header>
         <List.Section>
           {SETTINGS.map(item =>
             <List.Item
+              key={item.id}
               title={item.description}
               description={item.description}
-              onPress={this.identifySQLQuery.bind(this,item.id)}
-              />
+              onPress={this.identifySQLQuery.bind(this, item.id)}
+            />
           )}
         </List.Section>
       </View>

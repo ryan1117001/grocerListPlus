@@ -1,11 +1,10 @@
 import React, { PureComponent } from 'react';
-import { View, Text, FlatList, TextInput, RefreshControl } from 'react-native';
+import { ScrollView, View, FlatList, RefreshControl, TextInput } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { FAB, Card, Button, Dialog, Portal, Provider } from 'react-native-paper';
+import { Button, Dialog, Portal, Provider, Appbar, List, Surface } from 'react-native-paper';
 import { navigate } from '../../Utils/RootNavigation';
 import {
-  db, enableFK, createItemsTable,
-  createStoresTable, insertStore, selectStores, deleteStore, deleteItemsByStoreId
+  db, insertStore, selectStores, deleteStore, deleteItemsByStoreId
 } from '../../Utils/SQLConstants';
 
 class StoresPage extends PureComponent {
@@ -18,9 +17,6 @@ class StoresPage extends PureComponent {
       data: [],
       isRefreshing: false
     };
-    // Init tables
-    this.initDB();
-
   }
 
   componentDidMount = () => {
@@ -37,20 +33,13 @@ class StoresPage extends PureComponent {
     this._unsubscribe();
   }
 
-  navigateToForm = (store) => {
-    navigate('Store Items', { storeName: store.storeName, storeId: store.id, dateToGo: store.dateToGo })
+  navigateToStoreItems = (store) => {
+    navigate('storeItems', {
+      storeName: store.storeName,
+      storeId: store.id,
+      dateToGo: store.dateToGo
+    })
   }
-
-  initDB = () => {
-    db.transaction((tx) => {
-      tx.executeSql(enableFK);
-      tx.executeSql(createStoresTable);
-      tx.executeSql(createItemsTable)
-    },
-      (error) => console.debug(error),
-      () => console.debug('successful init')
-    )
-  };
 
   queryAllStores() {
     db.transaction(tx => {
@@ -104,7 +93,6 @@ class StoresPage extends PureComponent {
   }
 
   deleteStore = (id) => {
-    //TODO: Delete related items
     db.transaction(tx => {
       tx.executeSql(deleteItemsByStoreId, [id])
       tx.executeSql(deleteStore, [id])
@@ -118,42 +106,47 @@ class StoresPage extends PureComponent {
   }
 
   render() {
-    if (this.state.hasError) {
-      return (
-        <View style={styles.HomePageWrapper}>
-          <Text>Something went wrong.</Text>
-        </View>
-      );
-    }
     return (
       <Provider>
-        <View style={styles.HomePageWrapper}>
-          <FlatList
-            data={this.state.data}
-            refreshControl={
-              <RefreshControl
-                refreshing={this.state.isRefreshing}
-                onRefresh={this.forceRefresh}
-              />
-            }
-            renderItem={({ item, index, separators }) => (
-              <Card
-                onPress={this.navigateToForm.bind(this, item)}
-              >
-                <Card.Title
-                  title={item.storeName} subtitle={item.dateToGo}
-                  right={() => <Button onPress={this.deleteStore.bind(this, item.id)}> Delete </Button>}
-                />
-              </Card>
-            )}
-          />
-          <FAB
-            style={styles.fab}
-            small
-            icon="plus"
-            onPress={this.showAddStoreModal}
-          />
-        </View>
+        <Appbar.Header>
+          <Appbar.Content title='Stores' />
+          <Appbar.Action icon='magnify' onPress={() => { }} />
+          <Appbar.Action icon='plus' onPress={this.showAddStoreModal} />
+          <Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
+        </Appbar.Header>
+        <ScrollView
+          style={styles.HomePageWrapper}
+          refreshControl={
+            <RefreshControl
+              refreshing={this.state.isRefreshing}
+              onRefresh={this.forceRefresh}
+            />
+          }
+        >
+          <List.Section>
+            {this.state.data.map((item) => {
+              return (
+                <Surface
+                  key={item.id}
+                  style={styles.Surface}>
+                  <List.Item
+                    onPress={this.navigateToStoreItems.bind(this,item)}
+                    key={item.id}
+                    title={item.storeName}
+                    description={item.dateToGo}
+                    right={() =>
+                      <Button
+                        onPress={this.deleteStore.bind(this, item.id)}
+                      >
+                        Delete
+                  </Button>
+                    }
+                  />
+                </Surface>
+              )
+            })}
+          </List.Section>
+        </ScrollView>
         <Portal>
           <Dialog
             visible={this.state.showAddStoreModal}
@@ -171,9 +164,7 @@ class StoresPage extends PureComponent {
             </Dialog.Actions>
           </Dialog>
         </Portal>
-      </Provider>
-
-
+      </Provider >
     );
   }
 }
