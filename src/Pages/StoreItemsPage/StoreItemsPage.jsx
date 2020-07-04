@@ -7,6 +7,12 @@ import { List, Card, Modal, Provider, Portal, Button, FAB, Dialog, Checkbox } fr
 import { Calendar } from 'react-native-calendars';
 import * as SQLite from 'expo-sqlite';
 
+import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
+import {
+  List, Modal, Provider, Portal,
+  Button, Dialog, Checkbox, Appbar
+} from 'react-native-paper'
+import { Calendar } from 'react-native-calendars'
 import {
   db, deleteItem, selectUncheckedItems, insertItem, selectCheckedItems,
   changeToArchived, changeToUnarchived, updateDateToGo
@@ -33,13 +39,19 @@ class StoreItemsPage extends PureComponent {
     this.queryAllUnarchivedItemsInStore()
   }
 
-  componentDidMount = () => { }
+  componentDidMount = () => {
+    this._unsubscribe = this.props.navigation.addListener('focus', () => {
+      this.forceRefresh()
+    })
+  }
 
   componentDidCatch(error, info) { }
 
   componentDidUpdate = () => { }
 
-  componentWillUnmount = () => { }
+  componentWillUnmount = () => {
+    this._unsubscribe();
+  }
 
   hideCalendarModal = () => {
     this.setState({
@@ -109,12 +121,13 @@ class StoreItemsPage extends PureComponent {
       tx.executeSql(
         deleteItem,
         [id],
-        () => console.debug('success'),
+        () => {
+          console.debug('success')
+          this.forceRefresh()
+        },
         () => console.debug('error')
       )
     })
-    this.queryAllArchivedItemsInStore()
-    this.queryAllUnarchivedItemsInStore()
   }
 
   queryAllArchivedItemsInStore = () => {
@@ -140,9 +153,11 @@ class StoreItemsPage extends PureComponent {
       tx.executeSql(
         changeToArchived, [id]
       )
-    })
-    this.queryAllArchivedItemsInStore()
-    this.queryAllUnarchivedItemsInStore()
+    },
+      () => console.debug('error'),
+      () => {
+        this.forceRefresh()
+      })
   }
 
   changeToUnarchivedCheckBox = (id) => {
@@ -157,8 +172,7 @@ class StoreItemsPage extends PureComponent {
     },
       (error) => console.debug(error),
       () => {
-        this.queryAllArchivedItemsInStore()
-        this.queryAllUnarchivedItemsInStore()
+        this.forceRefresh()
       })
   }
 
@@ -175,6 +189,17 @@ class StoreItemsPage extends PureComponent {
         },
         () => console.debug('Error')
       )
+    })
+  }
+
+  forceRefresh = () => {
+    this.setState({
+      isRefreshing: true
+    })
+    this.queryAllArchivedItemsInStore()
+    this.queryAllUnarchivedItemsInStore()
+    this.setState({
+      isRefreshing: false
     })
   }
 

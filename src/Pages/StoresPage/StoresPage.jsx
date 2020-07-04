@@ -1,11 +1,10 @@
 import React, { PureComponent } from 'react';
-import { View, Text, FlatList, TextInput, RefreshControl } from 'react-native';
+import { View, FlatList, RefreshControl, TextInput } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { FAB, Card, Button, Dialog, Portal, Provider } from 'react-native-paper';
+import { Card, Button, Dialog, Portal, Provider, Appbar } from 'react-native-paper';
 import { navigate } from '../../Utils/RootNavigation';
 import {
-  db, enableFK, createItemsTable,
-  createStoresTable, insertStore, selectStores, deleteStore, deleteItemsByStoreId
+  db, insertStore, selectStores, deleteStore, deleteItemsByStoreId
 } from '../../Utils/SQLConstants';
 
 class StoresPage extends PureComponent {
@@ -18,9 +17,6 @@ class StoresPage extends PureComponent {
       data: [],
       isRefreshing: false
     };
-    // Init tables
-    this.initDB();
-
   }
 
   componentDidMount = () => {
@@ -40,17 +36,6 @@ class StoresPage extends PureComponent {
   navigateToForm = (store) => {
     navigate('Store Items', { storeName: store.storeName, storeId: store.id, dateToGo: store.dateToGo })
   }
-
-  initDB = () => {
-    db.transaction((tx) => {
-      tx.executeSql(enableFK);
-      tx.executeSql(createStoresTable);
-      tx.executeSql(createItemsTable)
-    },
-      (error) => console.debug(error),
-      () => console.debug('successful init')
-    )
-  };
 
   queryAllStores() {
     db.transaction(tx => {

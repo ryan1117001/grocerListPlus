@@ -9,6 +9,9 @@ import StoresPage from './src/Pages/StoresPage/StoresPage';
 import StoreItemsPage from './src/Pages/StoreItemsPage/StoreItemsPage'
 import AllItemsPage from './src/Pages/AllItemsPage/AllItemsPage';
 import SettingsPage from './src/Pages/SettingsPage/SettingsPage';
+import {
+  db, enableFK, createItemsTable, createStoresTable
+} from './src/Utils/SQLConstants';
 
 function headerRightButton() {
   return (
@@ -32,8 +35,21 @@ function tabNavigator() {
   )
 }
 
+function initDB() {
+  db.transaction((tx) => {
+    tx.executeSql(enableFK);
+    tx.executeSql(createStoresTable);
+    tx.executeSql(createItemsTable)
+  },
+    (error) => console.debug(error),
+    () => console.debug('successful init')
+  )
+};
+
 export default function App() {
-  const Stack = createStackNavigator();
+  const Stack = createStackNavigator()
+
+  initDB()
 
   return (
     <NavigationContainer ref={navigationRef}>
