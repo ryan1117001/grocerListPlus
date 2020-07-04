@@ -8,7 +8,7 @@ import {
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
 import {
-  db, deleteItem, selectUncheckedItems, insertItem, selectCheckedItems,
+  db, deleteItem, selectUninventoriedItems, insertItem, selectInventoriedItems,
   changeToInventoried, changeToUninventoried, updateDateToGo
 } from '../../Utils/SQLConstants';
 
@@ -124,7 +124,7 @@ class StoreItemsPage extends PureComponent {
     console.debug('all checked')
     db.transaction(tx => {
       tx.executeSql(
-        selectCheckedItems,
+        selectInventoriedItems,
         [this.state.storeId],
         (_, { rows: { _array } }) => {
           this.setState({
@@ -169,7 +169,7 @@ class StoreItemsPage extends PureComponent {
     console.debug('all unchecked')
     db.transaction(tx => {
       tx.executeSql(
-        selectUncheckedItems,
+        selectUninventoriedItems,
         [this.state.storeId],
         (_, { rows: { _array } }) => {
           this.setState({
