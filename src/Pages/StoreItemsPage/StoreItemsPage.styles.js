@@ -10,7 +10,8 @@ export const styles = StyleSheet.create({
     TitleRowWrapper: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        alignItems: 'center'
+        alignItems: 'center',
+        marginVertical: 2
     },
     UserInputWrapper: {
         flex: 1,

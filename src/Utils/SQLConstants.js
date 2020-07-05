@@ -6,7 +6,7 @@ export const db = SQLite.openDatabase('grocerListPlus.db')
 export const enableFK = 'PRAGMA foreign_keys = ON;'
 
 // create stores table
-export const createStoresTable =  `
+export const createStoresTable = `
 CREATE TABLE IF NOT EXISTS stores ( 
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
     storeName TEXT,
@@ -18,7 +18,7 @@ export const createItemsTable = `
 CREATE TABLE IF NOT EXISTS items (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     itemName TEXT,
-    isInventoried INTEGER,
+    itemType TEXT,
     storeId INTEGER NOT NULL,
     FOREIGN KEY (storeId)
         REFERENCES stores(id)
@@ -32,18 +32,19 @@ export const selectStores = 'SELECT * FROM stores;'
 export const updateDateToGo = 'UPDATE stores SET dateToGo=? WHERE id = ?'
 
 // Items
-export const insertItem = 'INSERT INTO items (itemName, isInventoried, storeId) values (?,0,?)'
 export const deleteItems = 'DELETE FROM items;'
 export const deleteItemsByStoreId = 'DELETE FROM items WHERE storeId = ?'
 export const deleteItem = 'DELETE FROM items WHERE id=?;'
 export const selectItems = 'SELECT * FROM items;'
-export const selectUninventoriedItems = 'SELECT * FROM items WHERE isInventoried=0 AND storeId=?'
-export const selectInventoriedItems = 'SELECT * FROM items WHERE isInventoried=1 AND storeId=?'
-export const selectAllInventoriedItems = 'SELECT * FROM stores INNER JOIN items ON items.storeId = stores.id WHERE isInventoried = 1;'
-export const selectAllUninventoriedItems = 'SELECT * FROM stores INNER JOIN items ON items.storeId = stores.id WHERE isInventoried = 0;'
-// Checkbox status
-export const changeToInventoried = 'UPDATE items SET isInventoried = 1 WHERE id = ?;'
-export const changeToUninventoried = 'UPDATE items SET isInventoried = 0 WHERE id = ?;'
+export const insertItem = 'INSERT INTO items (itemName, itemType, storeId) values (?,?,?)'
+export const selectItemsByItemTypeAndStoreId = 'SELECT * FROM items WHERE itemType=? AND storeId=?'
+export const changeItemType = 'UPDATE items SET itemType = ? WHERE id = ?;'
+
+// Items Join Stores
+export const selectAllItemJoinedStoresByItemType = `
+	SELECT * FROM stores INNER JOIN items 
+		ON items.storeId = stores.id 
+		WHERE itemType = ?;`
 
 // Drop Tables
 export const dropStoreTable = 'DROP TABLE stores;'

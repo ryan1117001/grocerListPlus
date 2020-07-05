@@ -8,70 +8,79 @@ import StoresPage from './src/Pages/StoresPage/StoresPage';
 import StoreItemsPage from './src/Pages/StoreItemsPage/StoreItemsPage'
 import InventoryPage from './src/Pages/InventoryPage/InventoryPage';
 import SettingsPage from './src/Pages/SettingsPage/SettingsPage';
+import ArchivePage from './src/Pages/ArchivePage/ArchivePage';
 import {
-  db, enableFK, createItemsTable, createStoresTable
+	db, enableFK, createItemsTable, createStoresTable
 } from './src/Utils/SQLConstants';
 
 function tabNavigator() {
-  const Tab = createMaterialBottomTabNavigator();
-  return (
-    <Tab.Navigator
-      barStyle={{
-        backgroundColor: '#5C00E7'
-      }}
-    >
-      <Tab.Screen
-        name='stores'
-        component={StoresPage}
-        options={{
-          title: 'Stores',
-          tabBarIcon: 'store'
-        }}
-      />
-      <Tab.Screen
-        name='inventory'
-        component={InventoryPage}
-        options={{
-          title: 'Inventory',
-          tabBarIcon: 'treasure-chest'
-        }}
-      />
-    </Tab.Navigator>
-  )
+	const Tab = createMaterialBottomTabNavigator();
+	return (
+		<Tab.Navigator
+			barStyle={{
+				backgroundColor: '#5C00E7'
+			}}
+		>
+			<Tab.Screen
+				name='stores'
+				component={StoresPage}
+				options={{
+					title: 'Stores',
+					tabBarIcon: 'store'
+				}}
+			/>
+			<Tab.Screen
+				name='inventory'
+				component={InventoryPage}
+				options={{
+					title: 'Inventory',
+					tabBarIcon: 'treasure-chest'
+				}}
+			/>
+			<Tab.Screen
+				name='archive'
+				component={ArchivePage}
+				options={{
+					title: 'Archive',
+					tabBarIcon: 'archive'
+				}}
+			/>
+		</Tab.Navigator>
+	)
 }
 
 function initDB() {
-  db.transaction((tx) => {
-    tx.executeSql(enableFK);
-    tx.executeSql(createStoresTable);
-    tx.executeSql(createItemsTable)
-  },
-    (error) => console.debug(error),
-    () => console.debug('successful init')
-  )
+	db.transaction((tx) => {
+		tx.executeSql(enableFK);
+		tx.executeSql(createStoresTable);
+		tx.executeSql(createItemsTable)
+	},
+		(error) => console.debug(error),
+		() => console.debug('successful init')
+	)
 };
 
 export default function App() {
-  const Stack = createStackNavigator()
+	const Stack = createStackNavigator()
 
-  initDB()
+	initDB()
 
-  return (
-    <NavigationContainer ref={navigationRef}>
-      <Stack.Navigator headerMode='none'>
-        <Stack.Screen
-          name='stores'
-          component={tabNavigator}
-        />
-        <Stack.Screen
-          name='settings'
-          component={SettingsPage}
-        />
-        <Stack.Screen
-          name='storeItems'
-          component={StoreItemsPage}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
+	return (
+		<NavigationContainer ref={navigationRef}>
+			<Stack.Navigator headerMode='none'>
+				<Stack.Screen
+					name='stores'
+					component={tabNavigator}
+				/>
+				<Stack.Screen
+					name='storeItems'
+					component={StoreItemsPage}
+				/>
+				<Stack.Screen
+					name='settings'
+					component={SettingsPage}
+				/>
+			</Stack.Navigator>
+		</NavigationContainer>
+	);
 }

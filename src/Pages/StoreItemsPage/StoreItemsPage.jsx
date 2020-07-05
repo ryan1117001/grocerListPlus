@@ -3,372 +3,302 @@ import PropTypes from 'prop-types';
 import { styles } from './StoreItemsPage.styles'
 import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
 import {
-  List, Modal, Provider, Portal,
-  Button, Dialog, Checkbox, Appbar, Surface
+	List, Modal, Provider, Portal,
+	Button, Dialog, Checkbox, Appbar, Surface
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
+import { navigate } from '../../Utils/RootNavigation';
 import {
-  db, deleteItem, selectUninventoriedItems, insertItem, selectInventoriedItems,
-  changeToInventoried, changeToUninventoried, updateDateToGo
+	db, deleteItem, insertItem, changeItemType, updateDateToGo, selectItemsByItemTypeAndStoreId
 } from '../../Utils/SQLConstants';
+import { itemType } from '../../Utils/TypeConstants'
 
 class StoreItemsPage extends PureComponent {
-  constructor(props) {
-    super(props);
+	constructor(props) {
+		super(props);
 
-    this.state = {
-      showCalendarModal: false,
-      showAddItemModal: false,
-      selectedDate: props.route.params.dateToGo,
-      storeName: props.route.params.storeName,
-      storeId: props.route.params.storeId,
-      itemNameText: '',
-      isRefreshing: false,
-      uninventoriedData: [],
-      inventoriedData: []
-    };
-  }
+		this.state = {
+			showCalendarModal: false,
+			showAddItemModal: false,
+			selectedDate: props.route.params.dateToGo,
+			storeName: props.route.params.storeName,
+			storeId: props.route.params.storeId,
+			itemNameText: '',
+			isRefreshing: false,
+			storeItemData: []
+		};
+	}
 
-  componentDidMount = () => {
-    this._unsubscribe = this.props.navigation.addListener('focus', () => {
-      this.forceRefresh()
-    })
-  }
+	componentDidMount = () => {
+		this._unsubscribe = this.props.navigation.addListener('focus', () => {
+			this.forceRefresh()
+		})
+	}
 
-  componentDidCatch(error, info) { }
+	componentDidCatch(error, info) { }
 
-  componentDidUpdate = () => { }
+	componentDidUpdate = () => { }
 
-  componentWillUnmount = () => {
-    this._unsubscribe();
-  }
+	componentWillUnmount = () => {
+		this._unsubscribe();
+	}
 
-  hideCalendarModal = () => {
-    this.setState({
-      showCalendarModal: false
-    })
-  }
+	hideCalendarModal = () => {
+		this.setState({
+			showCalendarModal: false
+		})
+	}
 
-  hideAddItemModal = () => {
-    this.setState({
-      showAddItemModal: false
-    })
-  }
+	hideAddItemModal = () => {
+		this.setState({
+			showAddItemModal: false
+		})
+	}
 
-  showCalendarModal = () => {
-    this.setState({
-      showCalendarModal: true
-    })
-  }
+	showCalendarModal = () => {
+		this.setState({
+			showCalendarModal: true
+		})
+	}
 
-  showAddItemModal = () => {
-    this.setState({
-      showAddItemModal: true
-    })
-  }
+	showAddItemModal = () => {
+		this.setState({
+			showAddItemModal: true
+		})
+	}
 
-  selectDate = (day) => {
-    var date = new Date(Date.UTC(day.year, day.month - 1, day.day + 1))
-    this.setState({
-      selectedDate: date.toLocaleDateString()
-    })
-    this.updateDate()
-    this.hideCalendarModal()
-  }
+	selectDate = (day) => {
+		var date = new Date(Date.UTC(day.year, day.month - 1, day.day + 1))
 
-  updateDate = () => {
-    db.transaction(tx => {
-      tx.executeSql(updateDateToGo,
-        [this.state.selectedDate, this.state.storeId],
-        () => console.debug('Success'),
-        () => console.debug('Error')
-      )
-    })
-  }
+		db.transaction(tx => {
+			tx.executeSql(updateDateToGo,
+				[this.state.selectedDate, this.state.storeId],
+				() => {
+					console.debug('Success')
+					this.setState({
+						selectedDate: date.toLocaleDateString()
+					})
+				},
+				() => console.debug('Error')
+			)
+		})
+		this.hideCalendarModal()
+	}
 
-  addItem = () => {
-    if (this.state.itemNameText !== '') {
-      db.transaction(tx => {
-        tx.executeSql(insertItem,
-          [this.state.itemNameText, this.state.storeId],
-          () => {
-            console.debug('Success')
-            this.queryAllUninventoriedItemsInStore()
-            this.hideAddItemModal()
-            this.setState({
-              itemNameText: ''
-            })
-          },
-          () => console.debug('Error')
-        )
-      })
-    }
-  }
+	addItem = () => {
+		if (this.state.itemNameText !== '') {
+			db.transaction(tx => {
+				tx.executeSql(insertItem,
+					[this.state.itemNameText, itemType.STORE, this.state.storeId],
+					() => {
+						console.debug('Success')
+						this.queryAllStoreItems()
+						this.hideAddItemModal()
+						this.setState({
+							itemNameText: ''
+						})
+					},
+					() => console.debug('Error')
+				)
+			})
+		}
+	}
 
-  deleteItem = (id) => {
-    console.debug('delete item')
-    db.transaction(tx => {
-      tx.executeSql(
-        deleteItem,
-        [id],
-        () => {
-          console.debug('success')
-          this.forceRefresh()
-        },
-        () => console.debug('error')
-      )
-    })
-  }
+	deleteItem = (id) => {
+		console.debug('delete item')
+		db.transaction(tx => {
+			tx.executeSql(
+				deleteItem,
+				[id],
+				() => {
+					console.debug('success')
+					this.forceRefresh()
+				},
+				() => console.debug('error')
+			)
+		})
+	}
 
-  queryAllInventoriedItemsInStore = () => {
-    console.debug('all checked')
-    db.transaction(tx => {
-      tx.executeSql(
-        selectInventoriedItems,
-        [this.state.storeId],
-        (_, { rows: { _array } }) => {
-          this.setState({
-            inventoriedData: _array
-          })
-        },
-        () => console.debug('Error')
-      )
-    })
-  }
+	changeItemType = (type, id) => {
+		console.debug('changing checkbox status')
+		db.transaction(tx => {
+			tx.executeSql(
+				changeItemType,
+				[type, id],
+				() => console.debug('success'),
+				() => console.debug('error')
+			)
+		},
+			() => console.debug('error'),
+			() => {
+				this.forceRefresh()
+			})
+	}
 
-  changeToInventoriedCheckBox = (id) => {
-    console.debug('changing checkbox status')
-    db.transaction(tx => {
-      tx.executeSql(
-        changeToInventoried, [id]
-      )
-    },
-      () => console.debug('error'),
-      () => {
-        this.forceRefresh()
-      })
-  }
+	queryAllStoreItems = () => {
+		console.debug('all unchecked')
+		db.transaction(tx => {
+			tx.executeSql(
+				selectItemsByItemTypeAndStoreId,
+				[itemType.STORE, this.state.storeId],
+				(_, { rows: { _array } }) => {
+					this.setState({
+						storeItemData: _array
+					})
+				},
+				() => console.debug('Error')
+			)
+		})
+	}
 
-  changeToUninventoriedCheckBox = (id) => {
-    console.debug('changing checkbox status')
-    db.transaction(tx => {
-      tx.executeSql(
-        changeToUninventoried,
-        [id],
-        () => console.debug('success'),
-        () => console.debug('error')
-      )
-    },
-      (error) => console.debug(error),
-      () => {
-        this.forceRefresh()
-      })
-  }
+	forceRefresh = () => {
+		this.setState({
+			isRefreshing: true
+		})
+		this.queryAllStoreItems()
+		this.setState({
+			isRefreshing: false
+		})
+	}
 
-  queryAllUninventoriedItemsInStore = () => {
-    console.debug('all unchecked')
-    db.transaction(tx => {
-      tx.executeSql(
-        selectUninventoriedItems,
-        [this.state.storeId],
-        (_, { rows: { _array } }) => {
-          this.setState({
-            uninventoriedData: _array
-          })
-        },
-        () => console.debug('Error')
-      )
-    })
-  }
-
-  forceRefresh = () => {
-    this.setState({
-      isRefreshing: true
-    })
-    this.queryAllInventoriedItemsInStore()
-    this.queryAllUninventoriedItemsInStore()
-    this.setState({
-      isRefreshing: false
-    })
-  }
-
-  renderInventoriedItems = () => {
-    if (this.state.inventoriedData.length > 0) {
-      return (
-        this.state.inventoriedData.map((item) => {
-          return (
-            <Surface
-              style={styles.Surface}
-              key={item.id}
-            >
-              <List.Item
-                left={() => <Checkbox.Item
-                  label=''
-                  status={item.isInventoried ? 'checked' : 'unchecked'}
-                  onPress={this.changeToUninventoriedCheckBox.bind(this, item.id)}
-                />}
-                right={() =>
-                  <Button
-                    onPress={this.deleteItem.bind(this, item.id)}
-                  >
-                    Delete
-                      </Button>
-                }
-                title={item.itemName}
-                key={item.id}
-              />
-            </Surface>
-          )
-        })
-      )
-    }
-    else {
-      return <View />
-    }
-  }
-
-  renderUninventoriedItems = () => {
-    if (this.state.uninventoriedData.length > 0) {
-      return (
-        this.state.uninventoriedData.map((item) => {
-          return (
-            <Surface
-              style={styles.Surface}
-              key={item.id}
-            >
-              <List.Item
-                left={() => <Checkbox.Item
-                  label=''
-                  status={item.isInventoried ? 'checked' : 'unchecked'}
-                  onPress={this.changeToInventoriedCheckBox.bind(this, item.id)}
-                />}
-                right={() =>
-                  <Button
-                    onPress={this.deleteItem.bind(this, item.id)}
-                  >
-                    Delete
+	renderItems = (data) => {
+		if (data.length > 0) {
+			return (
+				data.map((item) => {
+					return (
+						<Surface
+							style={styles.Surface}
+							key={item.id}
+						>
+							<List.Item
+								left={() => <Checkbox.Item
+									label=''
+									status={item.itemType === itemType.STORE ? 'unchecked' : 'checked'}
+									onPress={this.changeItemType.bind(this, [itemType.INVENTORY, item.id])}
+								/>}
+								right={() =>
+									<Button
+										onPress={this.deleteItem.bind(this, item.id)}
+									>
+										Delete
                 </Button>
-                }
-                title={item.itemName}
-                key={item.id}
-              />
-            </Surface>
-          )
-        })
-      )
-    }
-    else {
-      return <View />
-    }
-  }
+								}
+								title={item.itemName}
+								key={item.id}
+							/>
+						</Surface>
+					)
+				})
+			)
+		}
+		else {
+			return <View />
+		}
+	}
 
-  render() {
+	render() {
 
-    const inventoriedAccordianList = this.renderInventoriedItems()
-    const uninventoriedAccordianList = this.renderUninventoriedItems()
+		const storeItemList = this.renderItems(this.state.storeItemData)
 
-    return (
-      <Provider>
-        <Appbar.Header>
-          <Appbar.BackAction onPress={() => { this.props.navigation.goBack() }} />
-          <Appbar.Content subtitle={'Store Items'} title={this.state.storeName} />
-          <Appbar.Action icon='magnify' onPress={() => { }} />
-          <Appbar.Action icon='plus' onPress={this.showAddItemModal} />
-          <Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
-        </Appbar.Header>
-        <ScrollView
-          style={styles.StoreItemsPageWrapper}
-          refreshControl={
-            <RefreshControl
-              refreshing={this.state.isRefreshing}
-              onRefresh={this.forceRefresh}
-            />
-          }
-          style={styles.StoreItemsPageWrapper}
-        >
-          {/* Store name and dates */}
+		return (
+			<Provider>
+				<Appbar.Header>
+					<Appbar.BackAction onPress={() => { this.props.navigation.goBack() }} />
+					<Appbar.Content subtitle={'Store Items'} title={this.state.storeName} />
+					<Appbar.Action icon='magnify' onPress={() => { }} />
+					<Appbar.Action icon='plus' onPress={this.showAddItemModal} />
+					<Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
+				</Appbar.Header>
+				<ScrollView
+					style={styles.StoreItemsPageWrapper}
+					refreshControl={
+						<RefreshControl
+							refreshing={this.state.isRefreshing}
+							onRefresh={this.forceRefresh}
+						/>
+					}
+					style={styles.StoreItemsPageWrapper}
+				>
+					{/* Store name and dates */}
 
-          <View style={styles.TitleRowWrapper}>
-            <Button
-              onPress={this.showAddItemModal}
-            >
-              Add An Item
-            </Button>
-            <Button
-              onPress={this.showCalendarModal}
-            >
-              {this.state.selectedDate}
-            </Button>
-          </View>
-          {/* Showing data */}
-          <List.Section>
-            {/* Unchecked off stuff*/}
-            {uninventoriedAccordianList}
+					<View style={styles.TitleRowWrapper}>
+						<Button
+							onPress={this.showAddItemModal}
+						>
+							Add An Item
+           				</Button>
+						<Button
+							onPress={this.showCalendarModal}
+						>
+							{this.state.selectedDate}
+						</Button>
+					</View>
+					{/* Showing data */}
+					<List.Section>
+						{storeItemList}
 
-            {/* Checked off stuff */}
-            {inventoriedAccordianList}
-          </List.Section>
+					</List.Section>
 
 
-          <Portal>
-            <Modal visible={this.state.showCalendarModal} onDismiss={this.hideCalendarModal}>
-              <Calendar
-                style={styles.CalendarWrapper}
-                theme={{
-                  selectedDayBackgroundColor: '#00adf5',
-                  todayTextColor: '#00adf5'
-                }}
-                // Handler which gets executed on day press. Default = undefined
-                onDayPress={this.selectDate}
-                // Month format in calendar title. Formatting values: http://arshaw.com/xdate/#Formatting
-                monthFormat={'MMM yyyy'}
-                // Handler which gets executed when visible month changes in calendar. Default = undefined
-                onMonthChange={(month) => { console.debug('month changed', month) }}
-                // If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
-                firstDay={1}
-                // Hide day names. Default = false
-                hideDayNames={false}
-                // Show week numbers to the left. Default = false
-                showWeekNumbers={true}
-                // Handler which gets executed when press arrow icon left. It receive a callback can go back month
-                onPressArrowLeft={substractMonth => substractMonth()}
-                // Handler which gets executed when press arrow icon right. It receive a callback can go next month
-                onPressArrowRight={addMonth => addMonth()}
-              />
-            </Modal>
-          </Portal>
+					<Portal>
+						<Modal visible={this.state.showCalendarModal} onDismiss={this.hideCalendarModal}>
+							<Calendar
+								style={styles.CalendarWrapper}
+								theme={{
+									selectedDayBackgroundColor: '#00adf5',
+									todayTextColor: '#00adf5'
+								}}
+								// Handler which gets executed on day press. Default = undefined
+								onDayPress={this.selectDate}
+								// Month format in calendar title. Formatting values: http://arshaw.com/xdate/#Formatting
+								monthFormat={'MMM yyyy'}
+								// Handler which gets executed when visible month changes in calendar. Default = undefined
+								onMonthChange={(month) => { console.debug('month changed', month) }}
+								// If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
+								firstDay={1}
+								// Hide day names. Default = false
+								hideDayNames={false}
+								// Show week numbers to the left. Default = false
+								showWeekNumbers={true}
+								// Handler which gets executed when press arrow icon left. It receive a callback can go back month
+								onPressArrowLeft={substractMonth => substractMonth()}
+								// Handler which gets executed when press arrow icon right. It receive a callback can go next month
+								onPressArrowRight={addMonth => addMonth()}
+							/>
+						</Modal>
+					</Portal>
 
-          <Portal>
-            <Dialog
-              visible={this.state.showAddItemModal}
-              onDismiss={this.hideAddItemModal}>
-              <Dialog.Title>Add Item</Dialog.Title>
-              <Dialog.Content>
-                <TextInput
-                  placeholder={'Item Name'}
-                  onChangeText={text => this.setState({ itemNameText: text })}
-                />
-              </Dialog.Content>
-              <Dialog.Actions>
-                <Button onPress={this.hideAddItemModal}>Cancel</Button>
-                <Button onPress={this.addItem}>Done</Button>
-              </Dialog.Actions>
-            </Dialog>
-          </Portal>
-        </ScrollView>
-      </Provider>
+					<Portal>
+						<Dialog
+							visible={this.state.showAddItemModal}
+							onDismiss={this.hideAddItemModal}>
+							<Dialog.Title>Add Item</Dialog.Title>
+							<Dialog.Content>
+								<TextInput
+									placeholder={'Item Name'}
+									onChangeText={text => this.setState({ itemNameText: text })}
+								/>
+							</Dialog.Content>
+							<Dialog.Actions>
+								<Button onPress={this.hideAddItemModal}>Cancel</Button>
+								<Button onPress={this.addItem}>Done</Button>
+							</Dialog.Actions>
+						</Dialog>
+					</Portal>
+				</ScrollView>
+			</Provider>
 
-    );
-  }
+		);
+	}
 }
 
 StoreItemsPage.propTypes = {
-  // bla: PropTypes.string,
-  store: PropTypes.object
+	// bla: PropTypes.string,
+	store: PropTypes.object
 };
 
 StoreItemsPage.defaultProps = {
-  // bla: 'test',
+	// bla: 'test',
 };
 
 export default StoreItemsPage;
