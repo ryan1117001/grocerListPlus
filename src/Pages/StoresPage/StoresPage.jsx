@@ -1,11 +1,13 @@
 import React, { PureComponent } from 'react';
-import { ScrollView, View, FlatList, RefreshControl, TextInput } from 'react-native';
+import { View, RefreshControl, TextInput, FlatList } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { Button, Dialog, Portal, Provider, Appbar, List, Surface } from 'react-native-paper';
+import { Button, Dialog, Portal, Provider, Appbar, Text } from 'react-native-paper';
 import { navigate } from '../../Utils/RootNavigation';
 import {
 	db, insertStore, selectStores, deleteStore, deleteItemsByStoreId
 } from '../../Utils/SQLConstants';
+import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
+import moment from 'moment'
 
 class StoresPage extends PureComponent {
 	constructor(props) {
@@ -15,7 +17,8 @@ class StoresPage extends PureComponent {
 			showAddStoreModal: false,
 			storeNameText: '',
 			data: [],
-			isRefreshing: false
+			isRefreshing: false,
+			showMenuModal: false
 		};
 	}
 
@@ -33,23 +36,18 @@ class StoresPage extends PureComponent {
 		this._unsubscribe();
 	}
 
-	navigateToStoreItems = (store) => {
-		navigate('storeItems', {
-			storeName: store.storeName,
-			storeId: store.id,
-			dateToGo: store.dateToGo
-		})
-	}
-
 	queryAllStores() {
+		console.debug('exec queryAllStores')
 		db.transaction(tx => {
 			tx.executeSql(
 				selectStores,
 				[],
 				(_, { rows: { _array } }) => {
+					console.debug(_array)
 					this.setState({
 						data: _array
 					})
+					console.debug('success')
 				},
 				() => console.debug("Error")
 			)
@@ -68,8 +66,21 @@ class StoresPage extends PureComponent {
 		});
 	}
 
+	hideEditStoreModal = () => {
+		this.setState({
+			showAddStoreModal: false
+		})
+	}
+
+	showEditStoreModal = () => {
+		this.setState({
+			showAddStoreModal: true
+		})
+	}
+
 	addStoreName = () => {
-		var date = new Date().toLocaleDateString()
+		var date = moment(new Date()).format('YYYY-MM-DD')
+		console.debug('exec addStoreName ' + this.state.storeNameText + " " + date)
 		db.transaction(tx => {
 			tx.executeSql(insertStore, [this.state.storeNameText, date],
 				() => {
@@ -81,7 +92,7 @@ class StoresPage extends PureComponent {
 			)
 		})
 	}
-
+	
 	forceRefresh = () => {
 		this.setState({
 			isRefreshing: true
@@ -90,19 +101,6 @@ class StoresPage extends PureComponent {
 		this.setState({
 			isRefreshing: false
 		})
-	}
-
-	deleteStore = (id) => {
-		db.transaction(tx => {
-			tx.executeSql(deleteItemsByStoreId, [id])
-			tx.executeSql(deleteStore, [id])
-		},
-			(error) => console.debug(error),
-			() => {
-				this.forceRefresh()
-			}
-		)
-
 	}
 
 	render() {
@@ -114,39 +112,23 @@ class StoresPage extends PureComponent {
 					<Appbar.Action icon='plus' onPress={this.showAddStoreModal} />
 					<Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
 				</Appbar.Header>
-				<ScrollView
+				<FlatList
 					style={styles.HomePageWrapper}
-					refreshControl={
-						<RefreshControl
-							refreshing={this.state.isRefreshing}
-							onRefresh={this.forceRefresh}
+					onRefresh={this.forceRefresh}
+					refreshing={this.state.isRefreshing}
+					data={this.state.data}
+					renderItem={({ item, index, seperator }) => (
+						<StoreListComponent
+							key={item.id}
+							store={item}
+							forceRefreshFunction={this.forceRefresh}
 						/>
+					)
+
 					}
-				>
-					<List.Section>
-						{this.state.data.map((item) => {
-							return (
-								<Surface
-									key={item.id}
-									style={styles.Surface}>
-									<List.Item
-										onPress={this.navigateToStoreItems.bind(this, item)}
-										key={item.id}
-										title={item.storeName}
-										description={item.dateToGo}
-										right={() =>
-											<Button
-												onPress={this.deleteStore.bind(this, item.id)}
-											>
-												Delete
-                  							</Button>
-										}
-									/>
-								</Surface>
-							)
-						})}
-					</List.Section>
-				</ScrollView>
+				/>
+
+				{/* add new store */}
 				<Portal>
 					<Dialog
 						visible={this.state.showAddStoreModal}

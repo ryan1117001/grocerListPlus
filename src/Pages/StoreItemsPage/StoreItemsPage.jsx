@@ -9,9 +9,11 @@ import {
 import { Calendar } from 'react-native-calendars'
 import { navigate } from '../../Utils/RootNavigation';
 import {
-	db, deleteItem, insertItem, changeItemType, updateDateToGo, selectItemsByItemTypeAndStoreId
+	db, deleteItem, insertItem, changeItemType,
+	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName
 } from '../../Utils/SQLConstants';
 import { itemType } from '../../Utils/TypeConstants'
+import moment from 'moment'
 
 class StoreItemsPage extends PureComponent {
 	constructor(props) {
@@ -20,10 +22,12 @@ class StoreItemsPage extends PureComponent {
 		this.state = {
 			showCalendarModal: false,
 			showAddItemModal: false,
+			showEditStoreModal: false,
 			selectedDate: props.route.params.dateToGo,
 			storeName: props.route.params.storeName,
 			storeId: props.route.params.storeId,
 			itemNameText: '',
+			storeNameText: '',
 			isRefreshing: false,
 			storeItemData: []
 		};
@@ -49,15 +53,15 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
-	hideAddItemModal = () => {
-		this.setState({
-			showAddItemModal: false
-		})
-	}
-
 	showCalendarModal = () => {
 		this.setState({
 			showCalendarModal: true
+		})
+	}
+
+	hideAddItemModal = () => {
+		this.setState({
+			showAddItemModal: false
 		})
 	}
 
@@ -67,16 +71,29 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
-	selectDate = (day) => {
-		var date = new Date(Date.UTC(day.year, day.month - 1, day.day + 1))
 
+	hideEditStoreModal = () => {
+		this.setState({
+			showEditStoreModal: false
+		})
+	}
+
+	showEditStoreModal = () => {
+		this.setState({
+			showEditStoreModal: true
+		})
+	}
+
+	selectDate = (day) => {
+		var date = moment(day.dateString).locale('en-US').format('l')
 		db.transaction(tx => {
+			console.debug('exec selectDate ' + day.dateString + " " + this.state.storeId)
 			tx.executeSql(updateDateToGo,
-				[this.state.selectedDate, this.state.storeId],
+				[day.dateString, this.state.storeId],
 				() => {
 					console.debug('Success')
 					this.setState({
-						selectedDate: date.toLocaleDateString()
+						selectedDate: date
 					})
 				},
 				() => console.debug('Error')
@@ -119,12 +136,14 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
-	changeItemType = (type, id) => {
+	changeItemType = (args) => {
+		//TODO: add purchaseDate
 		console.debug('changing checkbox status')
+		console.debug(args)
 		db.transaction(tx => {
 			tx.executeSql(
 				changeItemType,
-				[type, id],
+				args,
 				() => console.debug('success'),
 				() => console.debug('error')
 			)
@@ -161,6 +180,25 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
+	editStoreName = () => {
+		console.debug('exec editStore')
+		db.transaction(tx => {
+			tx.executeSql(
+				updateStoreName,
+				[this.state.storeNameText, this.state.storeId],
+				() => {
+					console.debug('success')
+					this.setState({
+						storeName: this.state.storeNameText,
+						storeNameText: '',
+					})
+				},
+				() => console.debug('error')
+			)
+		})
+	}
+
+
 	renderItems = (data) => {
 		if (data.length > 0) {
 			return (
@@ -177,11 +215,9 @@ class StoreItemsPage extends PureComponent {
 									onPress={this.changeItemType.bind(this, [itemType.INVENTORY, item.id])}
 								/>}
 								right={() =>
-									<Button
-										onPress={this.deleteItem.bind(this, item.id)}
-									>
+									<Button onPress={this.deleteItem.bind(this, item.id)}>
 										Delete
-                </Button>
+                					</Button>
 								}
 								title={item.itemName}
 								key={item.id}
@@ -206,7 +242,8 @@ class StoreItemsPage extends PureComponent {
 					<Appbar.BackAction onPress={() => { this.props.navigation.goBack() }} />
 					<Appbar.Content subtitle={'Store Items'} title={this.state.storeName} />
 					<Appbar.Action icon='magnify' onPress={() => { }} />
-					<Appbar.Action icon='plus' onPress={this.showAddItemModal} />
+					<Appbar.Action icon='pencil-outline' onPress={this.showEditStoreModal} />
+					{/* <Appbar.Action icon='plus' onPress={this.showAddItemModal} /> */}
 					<Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
 				</Appbar.Header>
 				<ScrollView
@@ -259,7 +296,7 @@ class StoreItemsPage extends PureComponent {
 								// Hide day names. Default = false
 								hideDayNames={false}
 								// Show week numbers to the left. Default = false
-								showWeekNumbers={true}
+								showWeekNumbers={false}
 								// Handler which gets executed when press arrow icon left. It receive a callback can go back month
 								onPressArrowLeft={substractMonth => substractMonth()}
 								// Handler which gets executed when press arrow icon right. It receive a callback can go next month
@@ -282,6 +319,24 @@ class StoreItemsPage extends PureComponent {
 							<Dialog.Actions>
 								<Button onPress={this.hideAddItemModal}>Cancel</Button>
 								<Button onPress={this.addItem}>Done</Button>
+							</Dialog.Actions>
+						</Dialog>
+					</Portal>
+					{/* edit store name */}
+					<Portal>
+						<Dialog
+							visible={this.state.showEditStoreModal}
+							onDismiss={this.hideEditStoreModal}>
+							<Dialog.Title>Edit Store Name</Dialog.Title>
+							<Dialog.Content>
+								<TextInput
+									placeholder={"Store Name"}
+									onChangeText={text => this.setState({ storeNameText: text })}
+								/>
+							</Dialog.Content>
+							<Dialog.Actions>
+								<Button onPress={this.hideEditStoreModal}>Cancel</Button>
+								<Button onPress={this.editStoreName}>Done</Button>
 							</Dialog.Actions>
 						</Dialog>
 					</Portal>

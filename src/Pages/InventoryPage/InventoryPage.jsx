@@ -72,11 +72,11 @@ class InventoryPage extends PureComponent {
 		})
 	}
 
-	changeItemType = (type, id) => {
+	changeItemType = (args) => {
 		db.transaction(tx => {
 			tx.executeSql(
 				changeItemType,
-				[type,id],
+				args,
 				() => {
 					console.debug('success')
 					this.forceRefresh()
@@ -88,7 +88,7 @@ class InventoryPage extends PureComponent {
 	}
 
 	deleteItem = (id) => {
-		console.debug('delete item')
+		console.debug('delete item: id ' + id)
 		db.transaction(tx => {
 			tx.executeSql(
 				deleteItem,
@@ -107,10 +107,10 @@ class InventoryPage extends PureComponent {
 			console.debug(this.state.itemNameText, this.state.selectedStoreId)
 			db.transaction(tx => {
 				tx.executeSql(insertItem,
-					[this.state.itemNameText, this.state.selectedStoreId],
+					[this.state.itemNameText, itemType.INVENTORY, this.state.selectedStoreId],
 					() => {
 						console.debug('success')
-						this.queryAllUninventoriedItems()
+						this.queryAllInventoriedItems()
 						this.hideAddAllItemModal()
 						this.setState({
 							itemNameText: '',
@@ -160,7 +160,7 @@ class InventoryPage extends PureComponent {
 							<List.Item
 								left={() => <Checkbox.Item
 									label=''
-									status={item.itemType === itemType.INVENTORY ? 'checked' : 'unchecked'}
+									status={item.itemType === itemType.INVENTORY ? 'unchecked' : 'checked'}
 									onPress={this.changeItemType.bind(this, [itemType.ARCHIVE, item.id])}
 								/>}
 								right={() =>
@@ -202,23 +202,20 @@ class InventoryPage extends PureComponent {
 
 		return (
 			<Provider>
-				<Appbar.Header>
-					<Appbar.Content title={'All Items'} />
-					<Appbar.Action icon='magnify' onPress={() => { }} />
-					<Appbar.Action icon='plus' onPress={this.showAddAllItemModal} />
-					<Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
-				</Appbar.Header>
 				<ScrollView style={styles.InventoryPageWrapper} refreshControl={
 					<RefreshControl
 						refreshing={this.state.isRefreshing}
 						onRefresh={this.forceRefresh}
 					/>
 				}>
+					<Appbar.Header>
+						<Appbar.Content title='Inventory' />
+						<Appbar.Action icon='magnify' onPress={() => { }} />
+						<Appbar.Action icon='plus' onPress={this.showAddAllItemModal} />
+						<Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
+					</Appbar.Header>
 					{/* Showing data */}
-					<List.Section>
-						{inventoryItemList}
-
-					</List.Section>
+					{inventoryItemList}
 					<Portal>
 						<Dialog
 							visible={this.state.showAddAllItemModal}

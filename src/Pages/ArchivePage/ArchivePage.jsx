@@ -6,9 +6,9 @@ import {
 	Button, Dialog, Checkbox, Appbar, Surface
 } from 'react-native-paper'
 import {
-	db, insertInventoryItem
+	db, selectAllItemJoinedStoresByItemType
 } from '../../Utils/SQLConstants'
-
+import {styles} from './ArchivePage.styles'
 import {itemType} from '../../Utils/TypeConstants'
 
 class ArchivePage extends PureComponent {
@@ -25,7 +25,7 @@ class ArchivePage extends PureComponent {
 
 	componentDidMount = () => {
 		this._unsubscribe = this.props.navigation.addListener('focus', () => {
-
+			this.queryAllArchivedItems()
 		})
 	}
 
@@ -49,11 +49,41 @@ class ArchivePage extends PureComponent {
 		})
 	}
 
+	deleteItem = (id) => {
+		console.debug('delete item')
+		db.transaction(tx => {
+			tx.executeSql(
+				deleteItem,
+				[id],
+				() => {
+					console.debug('success')
+					this.forceRefresh()
+				},
+				() => console.debug('error')
+			)
+		})
+	}
+
+	queryAllArchivedItems = () => {
+		db.transaction(tx => {
+			tx.executeSql(
+				selectAllItemJoinedStoresByItemType,
+				[itemType.ARCHIVE],
+				(_, { rows: { _array } }) => {
+					this.setState({
+						archivedData: _array
+					})
+				},
+				() => console.debug('Error')
+			)
+		})
+	}
+
 	forceRefresh = () => {
 		this.setState({
 			isRefreshing: true
 		})
-
+		this.queryAllArchivedItems()
 		this.setState({
 			isRefreshing: false
 		})
@@ -68,11 +98,6 @@ class ArchivePage extends PureComponent {
 							key={item.id}
 							style={styles.Surface}>
 							<List.Item
-								left={() => <Checkbox.Item
-									label=''
-									status={item.itemType === itemType.ARCHIVE ? 'checked' : 'unchecked'}
-									onPress={this.changeToInventoriedCheckBox.bind(this, item.id)}
-								/>}
 								right={() =>
 									<Button
 										onPress={this.deleteItem.bind(this, item.id)}
@@ -83,7 +108,6 @@ class ArchivePage extends PureComponent {
 								title={item.itemName}
 								description={item.storeName + " | " + item.dateToGo}
 								key={item.id}
-
 							/>
 						</Surface>
 					)

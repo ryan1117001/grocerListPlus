@@ -51,8 +51,11 @@ function tabNavigator() {
 
 function initDB() {
 	db.transaction((tx) => {
+		console.debug('exec enableFK')
 		tx.executeSql(enableFK);
+		console.debug('exec createStoresTable')
 		tx.executeSql(createStoresTable);
+		console.debug('exec createItemsTable')
 		tx.executeSql(createItemsTable)
 	},
 		(error) => console.debug(error),

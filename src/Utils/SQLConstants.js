@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS items (
     itemName TEXT,
     itemType TEXT,
     storeId INTEGER NOT NULL,
+    purchaseDate DATETIME,
     FOREIGN KEY (storeId)
         REFERENCES stores(id)
 );`
@@ -27,9 +28,11 @@ CREATE TABLE IF NOT EXISTS items (
 // Stores
 export const insertStore = 'INSERT INTO stores (storeName, dateToGo) values (?,?);'
 export const deleteStores = 'DELETE FROM stores;'
-export const deleteStore = 'DELETE FROM stores WHERE id=?'
+export const deleteStore = 'DELETE FROM stores WHERE id=?;'
 export const selectStores = 'SELECT * FROM stores;'
-export const updateDateToGo = 'UPDATE stores SET dateToGo=? WHERE id = ?'
+export const selectStore = 'SELECT * FROM stores WHERE id=?;'
+export const updateDateToGo = 'UPDATE stores SET dateToGo=? WHERE id = ?;'
+export const updateStoreName = 'UPDATE Stores SET storeName=? WHERE id = ?'
 
 // Items
 export const deleteItems = 'DELETE FROM items;'
@@ -38,7 +41,7 @@ export const deleteItem = 'DELETE FROM items WHERE id=?;'
 export const selectItems = 'SELECT * FROM items;'
 export const insertItem = 'INSERT INTO items (itemName, itemType, storeId) values (?,?,?)'
 export const selectItemsByItemTypeAndStoreId = 'SELECT * FROM items WHERE itemType=? AND storeId=?'
-export const changeItemType = 'UPDATE items SET itemType = ? WHERE id = ?;'
+export const changeItemType = 'UPDATE items SET itemType=? WHERE id=?;'
 
 // Items Join Stores
 export const selectAllItemJoinedStoresByItemType = `
