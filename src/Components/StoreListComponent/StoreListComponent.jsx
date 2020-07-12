@@ -13,7 +13,7 @@ import moment from 'moment'
 class StoreListComponent extends PureComponent {
     constructor(props) {
         super(props)
-        const date = moment(props.store.dateToGo).locale('en').format('l')
+        const date = moment(props.store.dateToGo).locale('en-US').format('l')
 
         this.state = {
             showEditStoreModal: false,
@@ -27,7 +27,7 @@ class StoreListComponent extends PureComponent {
 
     componentDidUpdate(prevProps) {
         if (prevProps.store !== this.props.store) {
-            const date = moment(this.props.store.dateToGo).locale('en').format('l')
+            const date = moment(this.props.store.dateToGo).locale('en-US').format('l')
             this.setState({
                 id: this.props.store.id,
                 storeName: this.props.store.storeName,
@@ -96,18 +96,11 @@ class StoreListComponent extends PureComponent {
                             title={this.state.storeName}
                             description={this.state.dateToGo}
                             right={() =>
-                                <Menu
-                                    visible={this.state.showMenuModal}
-                                    onDismiss={this.hideMenuModal}
-                                    anchor={
-                                        <IconButton
-                                            icon='pencil-outline'
-                                            onPress={this.showMenuModal}>Show Menu
-                                    </IconButton>
-                                    }
-                                >
-                                    <Menu.Item onPress={this.deleteStore} title="Delete" />
-                                </Menu>
+                                <IconButton
+                                    icon='trash-can-outline'
+                                    onPress={this.deleteStore}>
+                                        Delete
+                                </IconButton>
                             }
                         />
                     </Surface>
