@@ -10,7 +10,8 @@ import { Calendar } from 'react-native-calendars'
 import { navigate } from '../../Utils/RootNavigation';
 import {
 	db, deleteItem, insertItem, changeItemType,
-	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName
+	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName,
+	updatePurchaseDate
 } from '../../Utils/SQLConstants';
 import { itemType } from '../../Utils/TypeConstants'
 import moment from 'moment'
@@ -85,15 +86,15 @@ class StoreItemsPage extends PureComponent {
 	}
 
 	selectDate = (day) => {
-		var date = moment(day.dateString).locale('en-US').format('l')
+		var date = moment(day.dateString)
 		db.transaction(tx => {
 			console.debug('exec selectDate ' + day.dateString + " " + this.state.storeId)
 			tx.executeSql(updateDateToGo,
-				[day.dateString, this.state.storeId],
+				[date.format('YYYY-MM-DD'), this.state.storeId],
 				() => {
 					console.debug('Success')
 					this.setState({
-						selectedDate: date
+						selectedDate: date.locale('en-US').format('l')
 					})
 				},
 				() => console.debug('Error')
@@ -137,15 +138,23 @@ class StoreItemsPage extends PureComponent {
 	}
 
 	changeItemType = (args) => {
-		//TODO: add purchaseDate
-		console.debug('changing checkbox status')
-		console.debug(args)
+		var date = moment(new Date()).format('YYYY-MM-DD')
 		db.transaction(tx => {
+			console.debug('exec changeItemType')
+			console.debug(args)
 			tx.executeSql(
 				changeItemType,
 				args,
-				() => console.debug('success'),
-				() => console.debug('error')
+				() => console.debug('changeItemType success'),
+				() => console.debug('changeItemType error')
+			)
+			console.debug('exec updatePurchaseDate')
+			console.debug([date, args[1]])
+			tx.executeSql(
+				updatePurchaseDate,
+				[date, args[1]],
+				() => console.debug('updatePurchaseDate success'),
+				() => console.debug('updatePurchaseDate error')
 			)
 		},
 			() => console.debug('error'),

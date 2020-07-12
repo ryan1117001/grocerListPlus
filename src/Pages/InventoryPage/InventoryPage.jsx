@@ -9,6 +9,7 @@ import {
 	deleteItem, selectStores, changeItemType
 } from '../../Utils/SQLConstants';
 import { itemType } from '../../Utils/TypeConstants'
+import moment from 'moment'
 
 class InventoryPage extends PureComponent {
 	constructor(props) {
@@ -171,7 +172,7 @@ class InventoryPage extends PureComponent {
               						</Button>
 								}
 								title={item.itemName}
-								description={item.storeName + " | " + item.dateToGo}
+								description={item.storeName + " | " + moment(item.purchaseDate).locale('en-US').format('l')}
 								key={item.id}
 
 							/>
