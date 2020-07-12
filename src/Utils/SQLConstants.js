@@ -42,6 +42,7 @@ export const selectItems = 'SELECT * FROM items;'
 export const insertItem = 'INSERT INTO items (itemName, itemType, storeId) values (?,?,?)'
 export const selectItemsByItemTypeAndStoreId = 'SELECT * FROM items WHERE itemType=? AND storeId=?'
 export const changeItemType = 'UPDATE items SET itemType=? WHERE id=?;'
+export const updatePurchaseDate = 'UPDATE items SET purchaseDate=? WHERE id=?;'
 
 // Items Join Stores
 export const selectAllItemJoinedStoresByItemType = `
