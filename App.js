@@ -2,53 +2,156 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
-import { navigationRef } from './src/Utils/RootNavigation';
-
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { navigationRef, navigate } from './src/Utils/RootNavigation';
+import { enableScreens } from 'react-native-screens';
 import StoresPage from './src/Pages/StoresPage/StoresPage';
 import StoreItemsPage from './src/Pages/StoreItemsPage/StoreItemsPage'
-import InventoryPage from './src/Pages/InventoryPage/InventoryPage';
+import InventoryItemPage from './src/Pages/InventoryItemPage/InventoryItemPage';
 import SettingsPage from './src/Pages/SettingsPage/SettingsPage';
-import ArchivePage from './src/Pages/ArchivePage/ArchivePage';
+import ArchiveItemPage from './src/Pages/ArchiveItemPage/ArchiveItemPage';
+import ArchiveStorePage from './src/Pages/ArchiveStorePage/ArchiveStorePage';
 import {
 	db, enableFK, createItemsTable, createStoresTable
 } from './src/Utils/SQLConstants';
+import { IconButton } from 'react-native-paper';
 
-function tabNavigator() {
-	const Tab = createMaterialBottomTabNavigator();
+function topTabNavigator() {
+	const TopTabNav = createMaterialTopTabNavigator()
 	return (
-		<Tab.Navigator
+		<TopTabNav.Navigator>
+			<TopTabNav.Screen
+				name='ArchiveStores'
+				component={ArchiveStorePage}
+				options={{
+					title: 'Archived Stores',
+				}}
+			/>
+			<TopTabNav.Screen
+				name='ArchiveItems'
+				component={ArchiveItemPage}
+				options={{
+					title: 'Archived Items'
+				}}
+			/>
+		</TopTabNav.Navigator>
+	)
+}
+
+function bottomTabNavigator() {
+	const BottomTabNav = createMaterialBottomTabNavigator();
+
+	return (
+		<BottomTabNav.Navigator
 			barStyle={{
 				backgroundColor: '#5C00E7'
 			}}
 		>
-			<Tab.Screen
-				name='stores'
-				component={StoresPage}
+			<BottomTabNav.Screen
+				name='StoreStack'
+				component={StoreContainer}
 				options={{
 					title: 'Stores',
-					tabBarIcon: 'store'
+					tabBarIcon: 'store',
 				}}
 			/>
-			<Tab.Screen
-				name='inventory'
-				component={InventoryPage}
+			<BottomTabNav.Screen
+				name='Inventory'
+				component={InventoryContainer}
 				options={{
 					title: 'Inventory',
 					tabBarIcon: 'treasure-chest'
 				}}
 			/>
-			<Tab.Screen
-				name='archive'
-				component={ArchivePage}
+			<BottomTabNav.Screen
+				name='ArchiveStack'
+				component={ArchiveContainer}
 				options={{
 					title: 'Archive',
 					tabBarIcon: 'archive'
 				}}
 			/>
-		</Tab.Navigator>
+		</BottomTabNav.Navigator>
 	)
 }
 
+function ArchiveContainer() {
+	const ArchiveStackContainer = createStackNavigator()
+	return (
+		<ArchiveStackContainer.Navigator>
+			<ArchiveStackContainer.Screen
+				name='ArchiveContainer'
+				component={topTabNavigator}
+				options={{
+					headerTitle: 'Archive',
+					headerRight: () => (
+						<IconButton
+							icon='dots-vertical'
+							onPress={(() => navigate('Settings', {}))}
+						/>
+					)
+				}}
+			/>
+		</ArchiveStackContainer.Navigator>
+	)
+}
+
+function StoreContainer() {
+	const StoreStackContainer = createStackNavigator()
+	return (
+		<StoreStackContainer.Navigator>
+			<StoreStackContainer.Screen
+				name='Stores'
+				component={StoresPage}
+			/>
+			<StoreStackContainer.Screen
+				name='StoreItems'
+				component={StoreItemsPage}
+			/>
+		</StoreStackContainer.Navigator>
+	)
+}
+
+function InventoryContainer() {
+	const InventoryContainer = createStackNavigator()
+	return (
+		<InventoryContainer.Navigator>
+			<InventoryContainer.Screen
+				name='InventoryContainer'
+				component={InventoryItemPage}
+			/>
+		</InventoryContainer.Navigator>
+	)
+}
+
+function bottomTabContainer() {
+	const BottomStackContainer = createStackNavigator()
+	return (
+		<BottomStackContainer.Navigator
+			headerMode='none'
+		>
+			<BottomStackContainer.Screen
+				name='BottomTabContainer'
+				component={bottomTabNavigator}
+			/>
+		</BottomStackContainer.Navigator>
+	)
+}
+
+function settingsContainer() {
+	const SettingsStackContainer = createStackNavigator()
+	return (
+		<SettingsStackContainer.Navigator>
+			<SettingsStackContainer.Screen
+				name='SettingsStackContainer'
+				component={SettingsPage}
+				options={{
+					headerTitle: 'Settings',
+				}}
+			/>
+		</SettingsStackContainer.Navigator>
+	)
+}
 function initDB() {
 	db.transaction((tx) => {
 		console.debug('exec enableFK')
@@ -64,26 +167,25 @@ function initDB() {
 };
 
 export default function App() {
-	const Stack = createStackNavigator()
 
 	initDB()
+	enableScreens();
+	const RootStack = createStackNavigator()
 
 	return (
 		<NavigationContainer ref={navigationRef}>
-			<Stack.Navigator headerMode='none'>
-				<Stack.Screen
-					name='stores'
-					component={tabNavigator}
+			<RootStack.Navigator
+				headerMode='none'
+			>
+				<RootStack.Screen
+					name='BottomTabContainer'
+					component={bottomTabContainer}
 				/>
-				<Stack.Screen
-					name='storeItems'
-					component={StoreItemsPage}
+				<RootStack.Screen
+					name='Settings'
+					component={settingsContainer}
 				/>
-				<Stack.Screen
-					name='settings'
-					component={SettingsPage}
-				/>
-			</Stack.Navigator>
+			</RootStack.Navigator>
 		</NavigationContainer>
 	);
 }

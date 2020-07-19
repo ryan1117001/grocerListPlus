@@ -1,6 +1,5 @@
 import React, { PureComponent } from 'react'
 import { ScrollView, View, RefreshControl } from 'react-native'
-import { navigate } from '../../Utils/RootNavigation'
 import {
 	List, Modal, Provider, Portal,
 	Button, Dialog, Checkbox, Appbar, Surface
@@ -8,10 +7,10 @@ import {
 import {
 	db, selectAllItemJoinedStoresByItemType
 } from '../../Utils/SQLConstants'
-import {styles} from './ArchivePage.styles'
+import {styles} from './ArchiveItemPage.styles'
 import {itemType} from '../../Utils/TypeConstants'
 
-class ArchivePage extends PureComponent {
+class ArchiveItemPage extends PureComponent {
 	constructor(props) {
 		super(props)
 
@@ -133,26 +132,20 @@ class ArchivePage extends PureComponent {
 						/>
 					}
 				>
-					<Appbar.Header>
-						<Appbar.Content title='Archive' />
-						<Appbar.Action icon='magnify' onPress={() => { }} />
-						<Appbar.Action icon='plus' onPress={this.showAddItemModal} />
-						<Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
-					</Appbar.Header>
-
 					{archivedList}
+					{/* TODO: add item modal */}
 				</ScrollView>
 			</Provider>
 		)
 	}
 }
 
-ArchivePage.propTypes = {
+ArchiveItemPage.propTypes = {
 
 }
 
-ArchivePage.defaultProps = {
+ArchiveItemPage.defaultProps = {
 
 }
 
-export default ArchivePage
+export default ArchiveItemPage

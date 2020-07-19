@@ -4,12 +4,12 @@ import { styles } from './StoreItemsPage.styles'
 import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
 import {
 	List, Modal, Provider, Portal,
-	Button, Dialog, Checkbox, Appbar, Surface
+	Button, Dialog, Checkbox, IconButton, Surface
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
 import { navigate } from '../../Utils/RootNavigation';
 import {
-	db, deleteItem, insertItem, changeItemType,
+	db, deleteItem, insertItem, updateItemType,
 	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName,
 	updatePurchaseDate
 } from '../../Utils/SQLConstants';
@@ -32,6 +32,30 @@ class StoreItemsPage extends PureComponent {
 			isRefreshing: false,
 			storeItemData: []
 		};
+
+		this.setHeader(props.navigation)
+	}
+
+	setHeader = (navigation) => {
+		navigation.setOptions({
+			title: this.state.storeName,
+			headerRight: () => (
+				<View style={styles.HeaderWrapper}>
+					<IconButton
+						icon='magnify'
+						onPress={() => { }}
+					/>
+					<IconButton
+						icon='pencil-outline' 
+						onPress={this.showEditStoreModal}
+					/>
+					<IconButton
+						icon='dots-vertical'
+						onPress={(() => navigate('Settings', {}))}
+					/>
+				</View>
+			)
+		})
 	}
 
 	componentDidMount = () => {
@@ -143,7 +167,7 @@ class StoreItemsPage extends PureComponent {
 			console.debug('exec changeItemType')
 			console.debug(args)
 			tx.executeSql(
-				changeItemType,
+				updateItemType,
 				args,
 				() => console.debug('changeItemType success'),
 				() => console.debug('changeItemType error')
@@ -247,14 +271,6 @@ class StoreItemsPage extends PureComponent {
 
 		return (
 			<Provider>
-				<Appbar.Header>
-					<Appbar.BackAction onPress={() => { this.props.navigation.goBack() }} />
-					<Appbar.Content subtitle={'Store Items'} title={this.state.storeName} />
-					<Appbar.Action icon='magnify' onPress={() => { }} />
-					<Appbar.Action icon='pencil-outline' onPress={this.showEditStoreModal} />
-					{/* <Appbar.Action icon='plus' onPress={this.showAddItemModal} /> */}
-					<Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
-				</Appbar.Header>
 				<ScrollView
 					style={styles.StoreItemsPageWrapper}
 					refreshControl={

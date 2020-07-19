@@ -1,25 +1,26 @@
 import React, { PureComponent } from 'react';
 import { View } from 'react-native';
 import { styles } from './StoreListComponent.styles'
-import { List, Surface, Divider, Menu, IconButton, Provider, TextInput, Portal, Button } from 'react-native-paper';
-import { navigate } from '../../Utils/RootNavigation';
+import { List, Surface, IconButton, Provider } from 'react-native-paper';
 import {
-    db, deleteStore, deleteItemsByStoreId, selectStore
+    db, deleteStore, deleteItemsByStoreId, selectStore, updateStoreType
 } from '../../Utils/SQLConstants';
 import PropTypes from 'prop-types';
 import moment from 'moment'
+import { storeType } from '../../Utils/TypeConstants';
 
 
 class StoreListComponent extends PureComponent {
     constructor(props) {
         super(props)
+        console.debug(props)
         const date = moment(props.store.dateToGo).locale('en-US').format('l')
 
         this.state = {
-            showEditStoreModal: false,
             showMenuModal: false,
             id: props.store.id,
             storeName: props.store.storeName,
+            storeType: props.store.storeType,
             dateToGo: date,
             storeNameText: '',
         }
@@ -37,7 +38,7 @@ class StoreListComponent extends PureComponent {
     }
 
     navigateToStoreItems = () => {
-        navigate('storeItems', {
+        this.props.navigation.navigate('StoreItems', {
             storeName: this.state.storeName,
             storeId: this.state.id,
             dateToGo: this.state.dateToGo,
@@ -56,17 +57,6 @@ class StoreListComponent extends PureComponent {
         })
     }
 
-    forceRefreshStore = () => {
-        db.transaction(tx => {
-            console.debug('forceRefreshStore')
-            tx.executeSql(selectStore, [this.state.id],
-                (_, { rows: { _array } }) => {
-                    console.debug(_array)
-                },
-                () => console.debug('error'))
-        })
-    }
-
     deleteStore = () => {
         db.transaction(tx => {
             console.debug('exec deleteItemsByStoreId')
@@ -80,7 +70,35 @@ class StoreListComponent extends PureComponent {
                 this.props.forceRefreshFunction()
             }
         )
+    }
 
+    updateStoreType = (args) => {
+        db.transaction(tx => {
+            tx.executeSql(
+                updateStoreType,
+                args,
+                () => {
+                    console.debug('success')
+                    this.props.forceRefreshFunction()
+                },
+                () => console.debug('error')
+            )
+        })
+    }
+
+    onPressFunction = () => {
+        switch (this.state.storeType) {
+            case storeType.ARCHIVE:
+                console.debug('onPressFunction ARCHIVE')
+                this.updateStoreType([storeType.INUSE, this.state.id])
+                break
+            case storeType.INUSE:
+                console.debug('onPressFunction INUSE')
+                this.updateStoreType([storeType.ARCHIVE, this.state.id])
+                break
+            default:
+                console.debug('onPressFunction do nothing')
+        }
     }
 
     render() {
@@ -95,12 +113,17 @@ class StoreListComponent extends PureComponent {
                             key={this.state.id}
                             title={this.state.storeName}
                             description={this.state.dateToGo}
+                            left={() =>
+                                <IconButton
+                                    icon={this.state.storeType === storeType.ARCHIVE ? 'archive-arrow-up' : 'archive-arrow-down'}
+                                    onPress={this.onPressFunction}
+                                />
+                            }
                             right={() =>
                                 <IconButton
                                     icon='trash-can-outline'
-                                    onPress={this.deleteStore}>
-                                        Delete
-                                </IconButton>
+                                    onPress={this.deleteStore}
+                                />
                             }
                         />
                     </Surface>
@@ -114,13 +137,13 @@ class StoreListComponent extends PureComponent {
 StoreListComponent.propTypes = {
     store: PropTypes.object,
     forceRefreshFunction: PropTypes.func,
-    editStoreFunction: PropTypes.func
+    navigation: PropTypes.object
 }
 
 StoreListComponent.defaultProps = {
     store: null,
     forceRefreshFunction: null,
-    editStoreFunction: null
+    navigation: null
 }
 
 export default StoreListComponent

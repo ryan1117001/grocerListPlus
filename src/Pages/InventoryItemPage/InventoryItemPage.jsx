@@ -1,19 +1,22 @@
 import React, { PureComponent } from 'react'
 import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
-import { styles } from './InventoryPage.styles'
-import { List, Button, Checkbox, Provider, Appbar, Portal, Dialog, Text, Surface } from 'react-native-paper'
+import { styles } from './InventoryItemPage.styles'
+import { List, Button, Checkbox, Provider, Portal, Dialog, Text, Surface, IconButton } from 'react-native-paper'
 import { Picker } from '@react-native-community/picker'
 import { navigate } from '../../Utils/RootNavigation'
 import {
 	db, selectAllItemJoinedStoresByItemType, insertItem,
-	deleteItem, selectStores, changeItemType
+	deleteItem, selectAllStores, updateItemType
 } from '../../Utils/SQLConstants';
 import { itemType } from '../../Utils/TypeConstants'
 import moment from 'moment'
 
-class InventoryPage extends PureComponent {
+class InventoryItemPage extends PureComponent {
 	constructor(props) {
 		super(props);
+
+		this.setHeader(props.navigation)
+
 		this.state = {
 			inventoryItemData: [],
 			isRefreshing: false,
@@ -23,6 +26,28 @@ class InventoryPage extends PureComponent {
 			selectedStoreId: 0,
 			textInput: '',
 		};
+	}
+
+	setHeader = (navigation) => {
+		navigation.setOptions({
+			headerTitle: 'Inventory',
+			headerRight: () => (
+				<View style={styles.HeaderWrapper}>
+					<IconButton
+						icon='magnify'
+						onPress={() => { }}
+					/>
+					<IconButton
+						icon='plus'
+						onPress={this.showAddAllItemModal}
+					/>
+					<IconButton
+						icon='dots-vertical'
+						onPress={(() => navigate('Settings', {}))}
+					/>
+				</View>
+			)
+		})
 	}
 
 	componentDidMount = () => {
@@ -42,7 +67,7 @@ class InventoryPage extends PureComponent {
 	queryAllStores() {
 		db.transaction(tx => {
 			tx.executeSql(
-				selectStores,
+				selectAllStores,
 				[],
 				(_, { rows: { _array } }) => {
 
@@ -76,7 +101,7 @@ class InventoryPage extends PureComponent {
 	changeItemType = (args) => {
 		db.transaction(tx => {
 			tx.executeSql(
-				changeItemType,
+				updateItemType,
 				args,
 				() => {
 					console.debug('success')
@@ -85,7 +110,6 @@ class InventoryPage extends PureComponent {
 				() => console.debug('error')
 			)
 		})
-
 	}
 
 	deleteItem = (id) => {
@@ -159,11 +183,12 @@ class InventoryPage extends PureComponent {
 							key={item.id}
 							style={styles.Surface}>
 							<List.Item
-								left={() => <Checkbox.Item
-									label=''
-									status={item.itemType === itemType.INVENTORY ? 'unchecked' : 'checked'}
-									onPress={this.changeItemType.bind(this, [itemType.ARCHIVE, item.id])}
-								/>}
+								left={() =>
+									<IconButton
+										icon='archive-arrow-up'
+										onPress={this.changeItemType.bind(this, [itemType.ARCHIVE, item.id])}
+									/>
+								}
 								right={() =>
 									<Button
 										onPress={this.deleteItem.bind(this, item.id)}
@@ -203,18 +228,12 @@ class InventoryPage extends PureComponent {
 
 		return (
 			<Provider>
-				<ScrollView style={styles.InventoryPageWrapper} refreshControl={
+				<ScrollView style={styles.InventoryItemPageWrapper} refreshControl={
 					<RefreshControl
 						refreshing={this.state.isRefreshing}
 						onRefresh={this.forceRefresh}
 					/>
 				}>
-					<Appbar.Header>
-						<Appbar.Content title='Inventory' />
-						<Appbar.Action icon='magnify' onPress={() => { }} />
-						<Appbar.Action icon='plus' onPress={this.showAddAllItemModal} />
-						<Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
-					</Appbar.Header>
 					{/* Showing data */}
 					{inventoryItemList}
 					<Portal>
@@ -258,12 +277,12 @@ class InventoryPage extends PureComponent {
 	}
 }
 
-InventoryPage.propTypes = {
+InventoryItemPage.propTypes = {
 	// bla: PropTypes.string,
 };
 
-InventoryPage.defaultProps = {
+InventoryItemPage.defaultProps = {
 	// bla: 'test',
 };
 
-export default InventoryPage;
+export default InventoryItemPage;

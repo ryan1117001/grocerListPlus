@@ -4,6 +4,9 @@ export const styles = StyleSheet.create({
     StoreItemsPageWrapper: {
         flex: 1,
     },
+    HeaderWrapper: {
+        flexDirection: 'row'
+    },
     CalendarWrapper: {
         height: 330
     },

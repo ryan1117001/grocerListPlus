@@ -1,30 +1,54 @@
 import React, { PureComponent } from 'react';
-import { View, RefreshControl, TextInput, FlatList } from 'react-native';
+import { View, TextInput, FlatList } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { Button, Dialog, Portal, Provider, Appbar, Text } from 'react-native-paper';
+import { Button, Dialog, Portal, Provider, IconButton } from 'react-native-paper';
 import { navigate } from '../../Utils/RootNavigation';
 import {
-	db, insertStore, selectStores, deleteStore, deleteItemsByStoreId
+	db, insertStore, selectStoresByStoreType
 } from '../../Utils/SQLConstants';
 import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
 import moment from 'moment'
+import { storeType } from '../../Utils/TypeConstants';
 
 class StoresPage extends PureComponent {
 	constructor(props) {
 		super(props);
+
+		this.setHeader(props.navigation)
 
 		this.state = {
 			showAddStoreModal: false,
 			storeNameText: '',
 			data: [],
 			isRefreshing: false,
-			showMenuModal: false
 		};
+	}
+
+	setHeader = (navigation) => {
+		navigation.setOptions({
+			headerTitle: 'Stores',
+			headerRight: () => (
+				<View style={styles.HeaderWrapper}>
+					<IconButton
+						icon='magnify'
+						onPress={() => { }}
+					/>
+					<IconButton
+						icon='plus'
+						onPress={this.showAddStoreModal}
+					/>
+					<IconButton
+						icon='dots-vertical'
+						onPress={(() => navigate('Settings', {}))}
+					/>
+				</View>
+			)
+		})
 	}
 
 	componentDidMount = () => {
 		this._unsubscribe = this.props.navigation.addListener('focus', () => {
-			this.queryAllStores()
+			this.queryStores()
 		})
 	}
 
@@ -36,12 +60,12 @@ class StoresPage extends PureComponent {
 		this._unsubscribe();
 	}
 
-	queryAllStores() {
-		console.debug('exec queryAllStores')
+	queryStores() {
+		console.debug('exec queryStores')
 		db.transaction(tx => {
 			tx.executeSql(
-				selectStores,
-				[],
+				selectStoresByStoreType,
+				[storeType.INUSE],
 				(_, { rows: { _array } }) => {
 					console.debug(_array)
 					this.setState({
@@ -66,38 +90,26 @@ class StoresPage extends PureComponent {
 		});
 	}
 
-	hideEditStoreModal = () => {
-		this.setState({
-			showAddStoreModal: false
-		})
-	}
-
-	showEditStoreModal = () => {
-		this.setState({
-			showAddStoreModal: true
-		})
-	}
-
 	addStoreName = () => {
 		var date = moment(new Date()).format('YYYY-MM-DD')
 		console.debug('exec addStoreName ' + this.state.storeNameText + " " + date)
 		db.transaction(tx => {
-			tx.executeSql(insertStore, [this.state.storeNameText, date],
+			tx.executeSql(insertStore, [this.state.storeNameText, date, storeType.INUSE],
 				() => {
 					console.debug("Success")
 					this.hideAddStoreModal()
-					this.queryAllStores()
+					this.queryStores()
 				},
 				() => console.debug("Error")
 			)
 		})
 	}
-	
+
 	forceRefresh = () => {
 		this.setState({
 			isRefreshing: true
 		})
-		this.queryAllStores()
+		this.queryStores()
 		this.setState({
 			isRefreshing: false
 		})
@@ -106,12 +118,6 @@ class StoresPage extends PureComponent {
 	render() {
 		return (
 			<Provider>
-				<Appbar.Header>
-					<Appbar.Content title='Stores' />
-					<Appbar.Action icon='magnify' onPress={() => { }} />
-					<Appbar.Action icon='plus' onPress={this.showAddStoreModal} />
-					<Appbar.Action icon='dots-vertical' onPress={() => { navigate('settings', {}) }} />
-				</Appbar.Header>
 				<FlatList
 					style={styles.HomePageWrapper}
 					onRefresh={this.forceRefresh}
@@ -122,10 +128,9 @@ class StoresPage extends PureComponent {
 							key={item.id}
 							store={item}
 							forceRefreshFunction={this.forceRefresh}
+							navigation={this.props.navigation}
 						/>
-					)
-
-					}
+					)}
 				/>
 
 				{/* add new store */}

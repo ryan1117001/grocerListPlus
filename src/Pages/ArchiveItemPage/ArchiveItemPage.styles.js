@@ -1,11 +1,9 @@
 import { StyleSheet } from 'react-native';
 
+
 export const styles = StyleSheet.create({
-	InventoryPageWrapper: {
+	ArchiveItemPageWrapper: {
 		flex: 1
-	},
-	dialogTextInput: {
-		marginBottom: 25
 	},
 	Surface: {
 		marginVertical: 1,

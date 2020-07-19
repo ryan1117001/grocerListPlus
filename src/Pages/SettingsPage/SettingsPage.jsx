@@ -90,10 +90,6 @@ class SettingsPage extends PureComponent {
   render() {
     return (
       <View style={styles.SettingsPageWrapper}>
-        <Appbar.Header>
-          <Appbar.BackAction onPress={() => { this.props.navigation.goBack() }} />
-          <Appbar.Content title={'All Items'} />
-        </Appbar.Header>
         <List.Section>
           {SETTINGS.map(item =>
             <List.Item
