@@ -1,14 +1,10 @@
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
-	StoreListComponentWrapper: {
+	ItemListComponentWrapper: {
 		flex: 1
 	},
-	Surface: {
-		marginVertical: 1,
-		elevation: 4,
-	},
-	storeTitle: {
+	itemTitle: {
 		fontWeight: 'bold'
 	}
 });

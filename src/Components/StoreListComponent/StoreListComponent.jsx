@@ -1,13 +1,13 @@
 import React, { PureComponent } from 'react';
 import { View } from 'react-native';
 import { styles } from './StoreListComponent.styles'
-import { List, Surface, IconButton, Provider } from 'react-native-paper';
+import { List, Surface, IconButton, Provider, Text } from 'react-native-paper';
 import {
-    db, deleteStore, deleteItemsByStoreId, selectStore, updateStoreType
+    db, updateItemsOnUpdateStoreType, updateStoreType
 } from '../../Utils/SQLConstants';
 import PropTypes from 'prop-types';
 import moment from 'moment'
-import { storeType } from '../../Utils/TypeConstants';
+import { storeType, itemType } from '../../Utils/TypeConstants';
 
 
 class StoreListComponent extends PureComponent {
@@ -57,19 +57,24 @@ class StoreListComponent extends PureComponent {
         })
     }
 
-    deleteStore = () => {
+    updateItemsOnUpdateStoreType = () => {
+        var args = []
+        if (this.state.storeType === storeType.ARCHIVE) {
+            args = [itemType.STORE, this.state.id, itemType.ARCHIVE]
+        }
+        else if (this.state.storeType === storeType.INUSE) {
+            args = [itemType.ARCHIVE, this.state.id, itemType.STORE]
+        }
         db.transaction(tx => {
-            console.debug('exec deleteItemsByStoreId')
-            tx.executeSql(deleteItemsByStoreId, [this.state.id])
-            console.debug('exec deleteStore')
-            tx.executeSql(deleteStore, [this.state.id])
-        },
-            (error) => console.debug(error),
-            () => {
-                console.debug('parent refresh')
-                this.props.forceRefreshFunction()
-            }
-        )
+            console.debug('exec updateItemsOnUpdateStoreType')
+            tx.executeSql(updateItemsOnUpdateStoreType, args,
+                () => {
+                    console.debug('success')
+                    this.props.forceRefreshFunction()
+                },
+                () => console.debug('error')
+            )
+        })
     }
 
     updateStoreType = (args) => {
@@ -79,7 +84,7 @@ class StoreListComponent extends PureComponent {
                 args,
                 () => {
                     console.debug('success')
-                    this.props.forceRefreshFunction()
+                    this.updateItemsOnUpdateStoreType()
                 },
                 () => console.debug('error')
             )
@@ -111,24 +116,23 @@ class StoreListComponent extends PureComponent {
                         <List.Item
                             onPress={this.navigateToStoreItems}
                             key={this.state.id}
-                            title={this.state.storeName}
+                            title={<Text style={styles.storeTitle}>{this.state.storeName}</Text>}
                             description={this.state.dateToGo}
                             left={() =>
                                 <IconButton
-                                    icon={this.state.storeType === storeType.ARCHIVE ? 'archive-arrow-up' : 'archive-arrow-down'}
+                                    icon={this.state.storeType === storeType.ARCHIVE ? 'arrow-left-bold-box-outline' : 'arrow-right-bold-box-outline'}
                                     onPress={this.onPressFunction}
                                 />
                             }
                             right={() =>
                                 <IconButton
                                     icon='trash-can-outline'
-                                    onPress={this.deleteStore}
+                                    onPress={() => this.props.showDeleteStoreConfirmationFunc(this.state.id)}
                                 />
                             }
                         />
                     </Surface>
                 </View>
-
             </Provider>
         )
     }
@@ -137,6 +141,7 @@ class StoreListComponent extends PureComponent {
 StoreListComponent.propTypes = {
     store: PropTypes.object,
     forceRefreshFunction: PropTypes.func,
+    showDeleteStoreConfirmationFunc: PropTypes.func,
     navigation: PropTypes.object
 }
 

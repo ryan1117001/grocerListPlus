@@ -46,6 +46,7 @@ export const insertItem = 'INSERT INTO items (itemName, itemType, storeId) value
 export const selectItemsByItemTypeAndStoreId = 'SELECT * FROM items WHERE itemType=? AND storeId=?;'
 export const updateItemType = 'UPDATE items SET itemType=? WHERE id=?;'
 export const updatePurchaseDate = 'UPDATE items SET purchaseDate=? WHERE id=?;'
+export const updateItemsOnUpdateStoreType = 'UPDATE items SET itemType=? WHERE storeId=? AND itemType=?;'
 
 // Items Join Stores
 export const selectAllItemJoinedStoresByItemType = `

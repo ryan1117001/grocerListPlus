@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 import { FlatList } from 'react-native';
-import { Provider } from 'react-native-paper';
+import { Provider, Portal, Dialog, Text, Button } from 'react-native-paper';
 import { styles } from './ArchiveStorePage.styles';
 import {
   db, selectStoresByStoreType
@@ -16,14 +16,15 @@ class ArchiveStorePage extends PureComponent {
       storeNameText: '',
       data: [],
       isRefreshing: false,
+      storeToDelete: null
     };
   }
 
   componentDidMount = () => {
-		this._unsubscribe = this.props.navigation.addListener('focus', () => {
-			this.queryStores()
-		})
-	}
+    this._unsubscribe = this.props.navigation.addListener('focus', () => {
+      this.queryStores()
+    })
+  }
 
   componentDidCatch(error, info) {
     // You can also log the error to an error reporting service
@@ -35,6 +36,36 @@ class ArchiveStorePage extends PureComponent {
 
   componentWillUnmount = () => {
     console.log('ArchiveStorePage will unmount');
+  }
+
+  showDeleteStoreConfirmation = (id) => {
+    this.setState({
+      showDeleteStoreConfirmation: true,
+      storeToDelete: id
+    })
+  }
+
+  hideDeleteStoreConfirmation = () => {
+    this.setState({
+      showDeleteStoreConfirmation: false,
+      storeToDelete: null
+    })
+  }
+
+  deleteStore = () => {
+    db.transaction(tx => {
+      console.debug('exec deleteItemsByStoreId')
+      tx.executeSql(deleteItemsByStoreId, [this.state.storeToDelete])
+      console.debug('exec deleteStore')
+      tx.executeSql(deleteStore, [this.state.storeToDelete])
+    },
+      (error) => console.debug(error),
+      () => {
+        console.debug('parent refresh')
+        this.forceRefresh()
+        this.hideDeleteStoreConfirmation()
+      }
+    )
   }
 
   forceRefresh = () => {
@@ -79,9 +110,27 @@ class ArchiveStorePage extends PureComponent {
               store={item}
               forceRefreshFunction={this.forceRefresh}
               navigation={this.props.navigation}
+              showDeleteStoreConfirmationFunc={this.showDeleteStoreConfirmation}
             />
           )}
         />
+        {/* Confirm Deletion */}
+        <Portal>
+          <Dialog
+            visible={this.state.showDeleteStoreConfirmation}
+            onDismiss={this.hideDeleteStoreConfirmation}>
+            <Dialog.Title>Delete Items</Dialog.Title>
+            <Dialog.Content>
+              <Text>
+                Deleting items means that they will no longer be in inventory or in archive
+							</Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={this.hideDeleteStoreConfirmation}>Cancel</Button>
+              <Button onPress={this.deleteStore}>Done</Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       </Provider >
     );
   }

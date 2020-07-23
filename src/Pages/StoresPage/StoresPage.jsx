@@ -1,10 +1,10 @@
 import React, { PureComponent } from 'react';
 import { View, TextInput, FlatList } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { Button, Dialog, Portal, Provider, IconButton } from 'react-native-paper';
+import { Button, Dialog, Portal, Provider, IconButton, Text } from 'react-native-paper';
 import { navigate } from '../../Utils/RootNavigation';
 import {
-	db, insertStore, selectStoresByStoreType
+	db, insertStore, selectStoresByStoreType, deleteStore, deleteItemsByStoreId
 } from '../../Utils/SQLConstants';
 import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
 import moment from 'moment'
@@ -18,9 +18,11 @@ class StoresPage extends PureComponent {
 
 		this.state = {
 			showAddStoreModal: false,
+			showDeleteStoreConfirmation: false,
 			storeNameText: '',
 			data: [],
 			isRefreshing: false,
+			storeToDelete: null
 		};
 	}
 
@@ -90,6 +92,36 @@ class StoresPage extends PureComponent {
 		});
 	}
 
+	showDeleteStoreConfirmation = (id) => {
+		this.setState({
+			showDeleteStoreConfirmation: true,
+			storeToDelete: id
+		})
+	}
+
+	hideDeleteStoreConfirmation = () => {
+		this.setState({
+			showDeleteStoreConfirmation: false,
+			storeToDelete: null
+		})
+	}
+
+	deleteStore = () => {
+		db.transaction(tx => {
+			console.debug('exec deleteItemsByStoreId')
+			tx.executeSql(deleteItemsByStoreId, [this.state.storeToDelete])
+			console.debug('exec deleteStore')
+			tx.executeSql(deleteStore, [this.state.storeToDelete])
+		},
+			(error) => console.debug(error),
+			() => {
+				console.debug('parent refresh')
+				this.forceRefresh()
+				this.hideDeleteStoreConfirmation()
+			}
+		)
+	}
+
 	addStoreName = () => {
 		var date = moment(new Date()).format('YYYY-MM-DD')
 		console.debug('exec addStoreName ' + this.state.storeNameText + " " + date)
@@ -128,6 +160,7 @@ class StoresPage extends PureComponent {
 							key={item.id}
 							store={item}
 							forceRefreshFunction={this.forceRefresh}
+							showDeleteStoreConfirmationFunc={this.showDeleteStoreConfirmation}
 							navigation={this.props.navigation}
 						/>
 					)}
@@ -148,6 +181,23 @@ class StoresPage extends PureComponent {
 						<Dialog.Actions>
 							<Button onPress={this.hideAddStoreModal}>Cancel</Button>
 							<Button onPress={this.addStoreName}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+				{/* Confirm Deletion */}
+				<Portal>
+					<Dialog
+						visible={this.state.showDeleteStoreConfirmation}
+						onDismiss={this.hideDeleteStoreConfirmation}>
+						<Dialog.Title>Delete Items</Dialog.Title>
+						<Dialog.Content>
+							<Text>
+								Deleting items means that they will no longer be in inventory or in archive
+							</Text>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.hideDeleteStoreConfirmation}>Cancel</Button>
+							<Button onPress={this.deleteStore}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>
 				</Portal>

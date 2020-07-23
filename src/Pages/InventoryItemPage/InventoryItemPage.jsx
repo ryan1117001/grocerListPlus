@@ -1,15 +1,16 @@
 import React, { PureComponent } from 'react'
-import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
+import { View, ScrollView, RefreshControl, TextInput, FlatList } from 'react-native';
 import { styles } from './InventoryItemPage.styles'
-import { List, Button, Checkbox, Provider, Portal, Dialog, Text, Surface, IconButton } from 'react-native-paper'
+import { List, Button, Provider, Portal, Dialog, Text, Surface, IconButton } from 'react-native-paper'
 import { Picker } from '@react-native-community/picker'
 import { navigate } from '../../Utils/RootNavigation'
 import {
 	db, selectAllItemJoinedStoresByItemType, insertItem,
-	deleteItem, selectAllStores, updateItemType
+	deleteItem, selectAllStores
 } from '../../Utils/SQLConstants';
 import { itemType } from '../../Utils/TypeConstants'
 import moment from 'moment'
+import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 
 class InventoryItemPage extends PureComponent {
 	constructor(props) {
@@ -21,10 +22,12 @@ class InventoryItemPage extends PureComponent {
 			inventoryItemData: [],
 			isRefreshing: false,
 			showAddAllItemModal: false,
+			showDeleteItemConfirmation: false,
 			itemNameText: '',
 			stores: [],
 			selectedStoreId: 0,
 			textInput: '',
+			itemToDelete: null
 		};
 	}
 
@@ -98,29 +101,16 @@ class InventoryItemPage extends PureComponent {
 		})
 	}
 
-	changeItemType = (args) => {
-		db.transaction(tx => {
-			tx.executeSql(
-				updateItemType,
-				args,
-				() => {
-					console.debug('success')
-					this.forceRefresh()
-				},
-				() => console.debug('error')
-			)
-		})
-	}
-
-	deleteItem = (id) => {
-		console.debug('delete item: id ' + id)
+	deleteItem = () => {
+		console.debug('delete item: id ' + this.state.itemToDelete)
 		db.transaction(tx => {
 			tx.executeSql(
 				deleteItem,
-				[id],
+				[this.state.itemToDelete],
 				() => {
 					console.debug('success')
 					this.forceRefresh()
+					this.hideDeleteItemConfirmation()
 				},
 				() => console.debug('error')
 			)
@@ -163,6 +153,20 @@ class InventoryItemPage extends PureComponent {
 		})
 	}
 
+	showDeleteItemConfirmation = (id) => {
+		this.setState({
+			showDeleteItemConfirmation: true,
+			itemToDelete: id
+		})
+	}
+
+	hideDeleteItemConfirmation = () => {
+		this.setState({
+			showDeleteItemConfirmation: false,
+			itemToDelete: null
+		})
+	}
+
 	forceRefresh = () => {
 		this.setState({
 			isRefreshing: true
@@ -172,43 +176,6 @@ class InventoryItemPage extends PureComponent {
 		this.setState({
 			isRefreshing: false,
 		})
-	}
-
-	renderItems = (data) => {
-		if (data.length > 0) {
-			return (
-				data.map((item) => {
-					return (
-						<Surface
-							key={item.id}
-							style={styles.Surface}>
-							<List.Item
-								left={() =>
-									<IconButton
-										icon='archive-arrow-up'
-										onPress={this.changeItemType.bind(this, [itemType.ARCHIVE, item.id])}
-									/>
-								}
-								right={() =>
-									<Button
-										onPress={this.deleteItem.bind(this, item.id)}
-									>
-										Delete
-              						</Button>
-								}
-								title={item.itemName}
-								description={item.storeName + " | " + moment(item.purchaseDate).locale('en-US').format('l')}
-								key={item.id}
-
-							/>
-						</Surface>
-					)
-				})
-			)
-		}
-		else {
-			return <View />
-		}
 	}
 
 	renderPickerItems = () => {
@@ -223,55 +190,77 @@ class InventoryItemPage extends PureComponent {
 		}
 	}
 	render() {
-		const inventoryItemList = this.renderItems(this.state.inventoryItemData)
 		const pickerValueList = this.renderPickerItems()
 
 		return (
 			<Provider>
-				<ScrollView style={styles.InventoryItemPageWrapper} refreshControl={
-					<RefreshControl
-						refreshing={this.state.isRefreshing}
-						onRefresh={this.forceRefresh}
-					/>
-				}>
-					{/* Showing data */}
-					{inventoryItemList}
-					<Portal>
-						<Dialog
-							visible={this.state.showAddAllItemModal}
-							onDismiss={this.hideAddAllItemModal}>
-							<Dialog.ScrollArea>
-								<Dialog.Title> Add Item </Dialog.Title>
-								<Dialog.Content>
-									<TextInput
-										style={styles.dialogTextInput}
-										mode='outlined'
-										placeholder={'Item Name'}
-										onChangeText={text => this.setState({ itemNameText: text })}
-									/>
-									<View>
-										<Text> Stores </Text>
-										<Picker
-											selectedValue={this.state.selectedStoreId}
-											onValueChange={(itemValue, itemIndex) => {
-												this.setState({ selectedStoreId: itemValue })
-											}
-											}
-											mode='dropdown'
-										>
-											{pickerValueList}
-										</Picker>
-									</View>
+				{/* Showing data */}
+				<FlatList
+					style={styles.InventoryItemPageWrapper}
+					refreshing={this.state.isRefreshing}
+					onRefresh={this.forceRefresh}
+					data={this.state.inventoryItemData}
+					renderItem={({ item, index, seperator }) => (
+						<ItemListComponent
+							key={item.id}
+							item={item}
+							forceRefreshFunc={this.forceRefresh}
+							showDeleteItemConfirmationFunc={this.showDeleteItemConfirmation}
+						/>
+					)}
+				/>
+				<Portal>
+					<Dialog
+						visible={this.state.showAddAllItemModal}
+						onDismiss={this.hideAddAllItemModal}>
+						<Dialog.ScrollArea>
+							<Dialog.Title> Add Item </Dialog.Title>
+							<Dialog.Content>
+								<TextInput
+									style={styles.dialogTextInput}
+									mode='outlined'
+									placeholder={'Item Name'}
+									onChangeText={text => this.setState({ itemNameText: text })}
+								/>
+								<View>
+									<Text> Stores </Text>
+									<Picker
+										selectedValue={this.state.selectedStoreId}
+										onValueChange={(itemValue, itemIndex) => {
+											this.setState({ selectedStoreId: itemValue })
+										}
+										}
+										mode='dropdown'
+									>
+										{pickerValueList}
+									</Picker>
+								</View>
 
-								</Dialog.Content>
-								<Dialog.Actions>
-									<Button onPress={this.hideAddAllItemModal}>Cancel</Button>
-									<Button onPress={this.addItem}>Done</Button>
-								</Dialog.Actions>
-							</Dialog.ScrollArea>
-						</Dialog>
-					</Portal>
-				</ScrollView>
+							</Dialog.Content>
+							<Dialog.Actions>
+								<Button onPress={this.hideAddAllItemModal}>Cancel</Button>
+								<Button onPress={this.addItem}>Done</Button>
+							</Dialog.Actions>
+						</Dialog.ScrollArea>
+					</Dialog>
+				</Portal>
+				{/* Confirm Deletion */}
+				<Portal>
+					<Dialog
+						visible={this.state.showDeleteItemConfirmation}
+						onDismiss={this.hideDeleteItemConfirmation}>
+						<Dialog.Title>Delete Items</Dialog.Title>
+						<Dialog.Content>
+							<Text>
+								Deleting items means that they will no longer be in inventory or in archive
+							</Text>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.hideDeleteItemConfirmation}>Cancel</Button>
+							<Button onPress={this.deleteItem}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
 			</Provider>
 		);
 	}

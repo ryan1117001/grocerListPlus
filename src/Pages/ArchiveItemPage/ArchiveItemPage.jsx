@@ -1,24 +1,25 @@
 import React, { PureComponent } from 'react'
-import { ScrollView, View, RefreshControl } from 'react-native'
+import { ScrollView, View, RefreshControl, FlatList } from 'react-native'
 import {
-	List, Modal, Provider, Portal,
-	Button, Dialog, Checkbox, Appbar, Surface
+	Provider, Portal, Button, Dialog, Text
 } from 'react-native-paper'
 import {
-	db, selectAllItemJoinedStoresByItemType
+	db, selectAllItemJoinedStoresByItemType, deleteItem
 } from '../../Utils/SQLConstants'
-import {styles} from './ArchiveItemPage.styles'
-import {itemType} from '../../Utils/TypeConstants'
+import { styles } from './ArchiveItemPage.styles'
+import { itemType } from '../../Utils/TypeConstants'
+import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 
 class ArchiveItemPage extends PureComponent {
 	constructor(props) {
 		super(props)
 
 		this.state = {
-			showAddItemModal: false,
+			showDeleteItemConfirmation: false,
 			itemNameText: '',
 			isRefreshing: false,
-			archivedData: []
+			archivedData: [],
+			itemToDelete: null
 		}
 	}
 
@@ -36,26 +37,30 @@ class ArchiveItemPage extends PureComponent {
 		this._unsubscribe();
 	}
 
-	showAddItemModal = () => {
+	showDeleteItemConfirmation = (id) => {
 		this.setState({
-			showAddItemModal: true
+			showDeleteItemConfirmation: true,
+			itemToDelete: id
 		})
 	}
 
-	hideAddItemModal = () => {
+
+	hideDeleteItemConfirmation = () => {
 		this.setState({
-			showAddItemModal: false
+			showDeleteItemConfirmation: false,
+			itemToDelete: null
 		})
 	}
 
-	deleteItem = (id) => {
-		console.debug('delete item')
+	deleteItem = () => {
+		console.debug('delete item' + this.state.itemToDelete)
 		db.transaction(tx => {
 			tx.executeSql(
 				deleteItem,
-				[id],
+				[this.state.itemToDelete],
 				() => {
 					console.debug('success')
+					this.hideDeleteItemConfirmation()
 					this.forceRefresh()
 				},
 				() => console.debug('error')
@@ -64,6 +69,7 @@ class ArchiveItemPage extends PureComponent {
 	}
 
 	queryAllArchivedItems = () => {
+		console.debug('exec selectAllItemJoinedStoresByItemType')
 		db.transaction(tx => {
 			tx.executeSql(
 				selectAllItemJoinedStoresByItemType,
@@ -88,53 +94,40 @@ class ArchiveItemPage extends PureComponent {
 		})
 	}
 
-	renderItems = (data) => {
-		if (data.length > 0) {
-			return (
-				data.map((item) => {
-					return (
-						<Surface
-							key={item.id}
-							style={styles.Surface}>
-							<List.Item
-								right={() =>
-									<Button
-										onPress={this.deleteItem.bind(this, item.id)}
-									>
-										Delete
-              						</Button>
-								}
-								title={item.itemName}
-								description={item.storeName + " | " + item.dateToGo}
-								key={item.id}
-							/>
-						</Surface>
-					)
-				})
-			)
-		}
-		else {
-			return <View />
-		}
-	}
-
 	render() {
-
-		const archivedList = this.renderItems(this.state.archivedData)
-
 		return (
 			<Provider>
-				<ScrollView
-					refreshControl={
-						<RefreshControl
-							refreshing={this.state.isRefreshing}
-							onRefresh={this.forceRefresh}
+				<FlatList
+					style={styles.ArchiveItemPageWrapper}
+					onRefresh={this.forceRefresh}
+					refreshing={this.state.isRefreshing}
+					data={this.state.archivedData}
+					renderItem={({ item, index, seperator }) => (
+						<ItemListComponent
+							key={item.id}
+							item={item}
+							forceRefreshFunc={this.forceRefresh}
+							showDeleteItemConfirmationFunc={this.showDeleteItemConfirmation}
 						/>
-					}
-				>
-					{archivedList}
-					{/* TODO: add item modal */}
-				</ScrollView>
+					)}
+				/>
+				{/* TODO: add item modal */}
+				<Portal>
+					<Dialog
+						visible={this.state.showDeleteItemConfirmation}
+						onDismiss={this.hideDeleteItemConfirmation}>
+						<Dialog.Title>Delete Items</Dialog.Title>
+						<Dialog.Content>
+							<Text>
+								Deleting items means that they will no longer be in inventory or in archive
+							</Text>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.hideDeleteItemConfirmation}>Cancel</Button>
+							<Button onPress={this.deleteItem}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
 			</Provider>
 		)
 	}

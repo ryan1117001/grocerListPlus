@@ -1,10 +1,10 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { styles } from './StoreItemsPage.styles'
-import { View, ScrollView, RefreshControl, TextInput } from 'react-native';
+import { View, ScrollView, RefreshControl, TextInput, FlatList } from 'react-native';
 import {
 	List, Modal, Provider, Portal,
-	Button, Dialog, Checkbox, IconButton, Surface
+	Button, Dialog, Checkbox, IconButton, Surface, Text
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
 import { navigate } from '../../Utils/RootNavigation';
@@ -13,6 +13,7 @@ import {
 	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName,
 	updatePurchaseDate
 } from '../../Utils/SQLConstants';
+import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 import { itemType } from '../../Utils/TypeConstants'
 import moment from 'moment'
 
@@ -21,6 +22,7 @@ class StoreItemsPage extends PureComponent {
 		super(props);
 
 		this.state = {
+			showDeleteItemConfirmation: false,
 			showCalendarModal: false,
 			showAddItemModal: false,
 			showEditStoreModal: false,
@@ -30,7 +32,8 @@ class StoreItemsPage extends PureComponent {
 			itemNameText: '',
 			storeNameText: '',
 			isRefreshing: false,
-			storeItemData: []
+			storeItemData: [],
+			itemToDelete: ''
 		};
 
 		this.setHeader(props.navigation)
@@ -46,7 +49,7 @@ class StoreItemsPage extends PureComponent {
 						onPress={() => { }}
 					/>
 					<IconButton
-						icon='pencil-outline' 
+						icon='pencil-outline'
 						onPress={this.showEditStoreModal}
 					/>
 					<IconButton
@@ -109,6 +112,21 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
+	showDeleteItemConfirmation = (id) => {
+		this.setState({
+			showDeleteItemConfirmation: true,
+			itemToDelete: id
+		})
+	}
+
+
+	hideDeleteItemConfirmation = () => {
+		this.setState({
+			showDeleteItemConfirmation: false,
+			itemToDelete: null
+		})
+	}
+
 	selectDate = (day) => {
 		var date = moment(day.dateString)
 		db.transaction(tx => {
@@ -128,6 +146,7 @@ class StoreItemsPage extends PureComponent {
 	}
 
 	addItem = () => {
+		console.debug('exec addItem')
 		if (this.state.itemNameText !== '') {
 			db.transaction(tx => {
 				tx.executeSql(insertItem,
@@ -154,37 +173,12 @@ class StoreItemsPage extends PureComponent {
 				[id],
 				() => {
 					console.debug('success')
+					this.hideDeleteItemConfirmation()
 					this.forceRefresh()
 				},
 				() => console.debug('error')
 			)
 		})
-	}
-
-	changeItemType = (args) => {
-		var date = moment(new Date()).format('YYYY-MM-DD')
-		db.transaction(tx => {
-			console.debug('exec changeItemType')
-			console.debug(args)
-			tx.executeSql(
-				updateItemType,
-				args,
-				() => console.debug('changeItemType success'),
-				() => console.debug('changeItemType error')
-			)
-			console.debug('exec updatePurchaseDate')
-			console.debug([date, args[1]])
-			tx.executeSql(
-				updatePurchaseDate,
-				[date, args[1]],
-				() => console.debug('updatePurchaseDate success'),
-				() => console.debug('updatePurchaseDate error')
-			)
-		},
-			() => console.debug('error'),
-			() => {
-				this.forceRefresh()
-			})
 	}
 
 	queryAllStoreItems = () => {
@@ -231,141 +225,122 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
-
-	renderItems = (data) => {
-		if (data.length > 0) {
-			return (
-				data.map((item) => {
-					return (
-						<Surface
-							style={styles.Surface}
-							key={item.id}
-						>
-							<List.Item
-								left={() => <Checkbox.Item
-									label=''
-									status={item.itemType === itemType.STORE ? 'unchecked' : 'checked'}
-									onPress={this.changeItemType.bind(this, [itemType.INVENTORY, item.id])}
-								/>}
-								right={() =>
-									<Button onPress={this.deleteItem.bind(this, item.id)}>
-										Delete
-                					</Button>
-								}
-								title={item.itemName}
-								key={item.id}
-							/>
-						</Surface>
-					)
-				})
-			)
-		}
-		else {
-			return <View />
-		}
-	}
-
 	render() {
-
-		const storeItemList = this.renderItems(this.state.storeItemData)
 
 		return (
 			<Provider>
-				<ScrollView
-					style={styles.StoreItemsPageWrapper}
-					refreshControl={
-						<RefreshControl
-							refreshing={this.state.isRefreshing}
-							onRefresh={this.forceRefresh}
-						/>
-					}
-					style={styles.StoreItemsPageWrapper}
-				>
-					{/* Store name and dates */}
+				{/* Store name and dates */}
 
-					<View style={styles.TitleRowWrapper}>
-						<Button
-							onPress={this.showAddItemModal}
-						>
-							Add An Item
+				<View style={styles.TitleRowWrapper}>
+					<Button
+						onPress={this.showAddItemModal}
+					>
+						Add An Item
            				</Button>
-						<Button
-							onPress={this.showCalendarModal}
-						>
-							{this.state.selectedDate}
-						</Button>
-					</View>
-					{/* Showing data */}
-					<List.Section>
-						{storeItemList}
+					<Button
+						onPress={this.showCalendarModal}
+					>
+						{this.state.selectedDate}
+					</Button>
+				</View>
+				{/* Showing data */}
+				<FlatList
+					refreshing={this.state.isRefreshing}
+					onRefresh={this.forceRefresh}
+					style={styles.StoreItemsPageWrapper}
+					data={this.state.storeItemData}
+					renderItem={({ item, index, seperator }) => (
+						<ItemListComponent
+							key={item.id}
+							item={item}
+							forceRefreshFunc={this.forceRefresh}
+							showDeleteItemConfirmationFunc={this.showDeleteItemConfirmation}
+						/>
+					)}
+				/>
 
-					</List.Section>
 
+				<Portal>
+					<Modal visible={this.state.showCalendarModal} onDismiss={this.hideCalendarModal}>
+						<Calendar
+							style={styles.CalendarWrapper}
+							theme={{
+								selectedDayBackgroundColor: '#00adf5',
+								todayTextColor: '#00adf5'
+							}}
+							// Handler which gets executed on day press. Default = undefined
+							onDayPress={this.selectDate}
+							// Month format in calendar title. Formatting values: http://arshaw.com/xdate/#Formatting
+							monthFormat={'MMM yyyy'}
+							// Handler which gets executed when visible month changes in calendar. Default = undefined
+							onMonthChange={(month) => { console.debug('month changed', month) }}
+							// If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
+							firstDay={1}
+							// Hide day names. Default = false
+							hideDayNames={false}
+							// Show week numbers to the left. Default = false
+							showWeekNumbers={false}
+							// Handler which gets executed when press arrow icon left. It receive a callback can go back month
+							onPressArrowLeft={substractMonth => substractMonth()}
+							// Handler which gets executed when press arrow icon right. It receive a callback can go next month
+							onPressArrowRight={addMonth => addMonth()}
+						/>
+					</Modal>
+				</Portal>
 
-					<Portal>
-						<Modal visible={this.state.showCalendarModal} onDismiss={this.hideCalendarModal}>
-							<Calendar
-								style={styles.CalendarWrapper}
-								theme={{
-									selectedDayBackgroundColor: '#00adf5',
-									todayTextColor: '#00adf5'
-								}}
-								// Handler which gets executed on day press. Default = undefined
-								onDayPress={this.selectDate}
-								// Month format in calendar title. Formatting values: http://arshaw.com/xdate/#Formatting
-								monthFormat={'MMM yyyy'}
-								// Handler which gets executed when visible month changes in calendar. Default = undefined
-								onMonthChange={(month) => { console.debug('month changed', month) }}
-								// If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
-								firstDay={1}
-								// Hide day names. Default = false
-								hideDayNames={false}
-								// Show week numbers to the left. Default = false
-								showWeekNumbers={false}
-								// Handler which gets executed when press arrow icon left. It receive a callback can go back month
-								onPressArrowLeft={substractMonth => substractMonth()}
-								// Handler which gets executed when press arrow icon right. It receive a callback can go next month
-								onPressArrowRight={addMonth => addMonth()}
+				<Portal>
+					<Dialog
+						visible={this.state.showAddItemModal}
+						onDismiss={this.hideAddItemModal}>
+						<Dialog.Title>Add Item</Dialog.Title>
+						<Dialog.Content>
+							<TextInput
+								placeholder={'Item Name'}
+								onChangeText={text => this.setState({ itemNameText: text })}
 							/>
-						</Modal>
-					</Portal>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.hideAddItemModal}>Cancel</Button>
+							<Button onPress={this.addItem}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+				{/* edit store name */}
+				<Portal>
+					<Dialog
+						visible={this.state.showEditStoreModal}
+						onDismiss={this.hideEditStoreModal}>
+						<Dialog.Title>Edit Store Name</Dialog.Title>
+						<Dialog.Content>
+							<TextInput
+								placeholder={"Store Name"}
+								onChangeText={text => this.setState({ storeNameText: text })}
+							/>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.hideEditStoreModal}>Cancel</Button>
+							<Button onPress={this.editStoreName}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
 
-					<Portal>
-						<Dialog
-							visible={this.state.showAddItemModal}
-							onDismiss={this.hideAddItemModal}>
-							<Dialog.Title>Add Item</Dialog.Title>
-							<Dialog.Content>
-								<TextInput
-									placeholder={'Item Name'}
-									onChangeText={text => this.setState({ itemNameText: text })}
-								/>
-							</Dialog.Content>
-							<Dialog.Actions>
-								<Button onPress={this.hideAddItemModal}>Cancel</Button>
-								<Button onPress={this.addItem}>Done</Button>
-							</Dialog.Actions>
-						</Dialog>
-					</Portal>
-					{/* edit store name */}
-					<Portal>
-						<Dialog
-							visible={this.state.showEditStoreModal}
-							onDismiss={this.hideEditStoreModal}>
-							<Dialog.Title>Edit Store Name</Dialog.Title>
-							<Dialog.Content>
-								<TextInput
-									placeholder={"Store Name"}
-									onChangeText={text => this.setState({ storeNameText: text })}
-								/>
-							</Dialog.Content>
-							<Dialog.Actions>
-								<Button onPress={this.hideEditStoreModal}>Cancel</Button>
-								<Button onPress={this.editStoreName}>Done</Button>
-							</Dialog.Actions>
-						</Dialog>
-					</Portal>
-				</ScrollView>
+				</Portal>
+				{/* delete item confirmation */}
+				<Portal>
+					<Dialog
+						visible={this.state.showDeleteItemConfirmation}
+						onDismiss={this.hideDeleteItemConfirmation}>
+						<Dialog.Title>Delete Items</Dialog.Title>
+						<Dialog.Content>
+							<Text>
+								Deleting items means that they will no longer be part of the store
+							</Text>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.hideDeleteItemConfirmation}>Cancel</Button>
+							<Button onPress={this.deleteItem.bind(this, this.state.itemToDelete)}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
 			</Provider>
 
 		);
