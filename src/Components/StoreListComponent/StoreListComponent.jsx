@@ -13,15 +13,16 @@ import { storeType, itemType } from '../../Utils/TypeConstants';
 class StoreListComponent extends PureComponent {
     constructor(props) {
         super(props)
+
         console.debug(props)
-        const date = moment(props.store.dateToGo).locale('en-US').format('l')
 
         this.state = {
             showMenuModal: false,
             id: props.store.id,
             storeName: props.store.storeName,
             storeType: props.store.storeType,
-            dateToGo: date,
+            dateToGo: moment(props.store.dateToGo).locale('en-US').format('l'),
+            archiveDate: moment(props.store.archiveDate).locale('en-US').format('l'),
             storeNameText: '',
         }
     }
@@ -120,9 +121,9 @@ class StoreListComponent extends PureComponent {
     setDescription = () => {
         switch (this.state.storeType) {
             case storeType.INUSE:
-                return <Text>{"Going On: " + moment(this.state.dateToGo).locale('en-US').format('l')}</Text>
+                return <Text>{"Going On: " + this.state.dateToGo}</Text>
             case storeType.ARCHIVE:
-                return <Text>{"Archived On: " + moment(this.state.archiveDate).locale('en-US').format('l')}</Text>
+                return <Text>{"Archived On: " + this.state.archiveDate}</Text>
             default:
                 <Text>Description Error</Text>
                 console.debug('Description Error')
@@ -137,7 +138,7 @@ class StoreListComponent extends PureComponent {
                         key={this.state.id}
                         style={styles.Surface}>
                         <List.Item
-                            onPress={this.navigateToStoreItems}
+                            onPress={this.state.storeType === storeType.INUSE ? this.navigateToStoreItems : null}
                             key={this.state.id}
                             title={<Text style={styles.storeTitle}>{this.state.storeName}</Text>}
                             description={this.setDescription}

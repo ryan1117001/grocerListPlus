@@ -4,7 +4,7 @@ import { IconButton, Surface, Provider, List, Text } from 'react-native-paper'
 import { styles } from './ItemListComponent.styles';
 import { itemType } from '../../Utils/TypeConstants'
 import PropTypes from 'prop-types';
-import { db, updateItemType, updateItemPurchaseDate, updateArchiveDate } from '../../Utils/SQLConstants'
+import { db, updateItemType, updateItemPurchaseDate, updateItemArchiveDate } from '../../Utils/SQLConstants'
 import moment from 'moment'
 
 class ItemListComponent extends PureComponent {
@@ -19,8 +19,8 @@ class ItemListComponent extends PureComponent {
 			dateToGo: props.item.dateToGo,
 			itemType: props.item.itemType,
 			storeName: props.item.storeName,
-			purchaseDate: props.item.purchaseDate,
-			archiveDate: props.item.archiveDate,
+			purchaseDate: moment(props.item.purchaseDate).locale('en-US').format('l'),
+			archiveDate: moment(props.item.archiveDate).locale('en-US').format('l'),
 			id: props.item.id,
 		};
 	}
@@ -79,10 +79,10 @@ class ItemListComponent extends PureComponent {
 				console.debug('exec updateArchiveDate')
 				var date = moment(new Date()).format('YYYY-MM-DD')
 				tx.executeSql(
-					updateArchiveDate,
+					updateItemArchiveDate,
 					[date, this.state.id],
-					() => console.debug('updateItemPurchaseDate success'),
-					() => console.debug('updateItemPurchaseDate error')
+					() => console.debug('updateItemArchiveDate success'),
+					() => console.debug('updateItemArchiveDate error')
 				)
 			}
 		},
@@ -98,9 +98,9 @@ class ItemListComponent extends PureComponent {
 			case itemType.STORE:
 				return <Text>Store Temp</Text>
 			case itemType.INVENTORY:
-				return <Text>{this.state.storeName + " | Purchased On: " + moment(this.state.purchaseDate).locale('en-US').format('l')}</Text>
+				return <Text>{this.state.storeName + " | Purchased On: " + this.state.purchaseDate}</Text>
 			case itemType.ARCHIVE:
-				return <Text>{this.state.storeName + " | Archived On: " + moment(this.state.archiveDate).locale('en-US').format('l')}</Text>
+				return <Text>{this.state.storeName + " | Archived On: " + this.state.archiveDate}</Text>
 			default:
 				<Text>Description Error</Text>
 				console.debug('Description Error')

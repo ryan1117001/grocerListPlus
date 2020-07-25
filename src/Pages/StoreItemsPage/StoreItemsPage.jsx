@@ -1,17 +1,16 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { styles } from './StoreItemsPage.styles'
-import { View, ScrollView, RefreshControl, TextInput, FlatList } from 'react-native';
+import { View, TextInput, FlatList } from 'react-native';
 import {
-	List, Modal, Provider, Portal,
-	Button, Dialog, Checkbox, IconButton, Surface, Text
+	Modal, Provider, Portal,
+	Button, Dialog, IconButton, Text
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
 import { navigate } from '../../Utils/RootNavigation';
 import {
-	db, deleteItem, insertItem, updateItemType,
-	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName,
-	updateItemPurchaseDate
+	db, deleteItem, insertStoreItem,
+	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName
 } from '../../Utils/SQLConstants';
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 import { itemType } from '../../Utils/TypeConstants'
@@ -156,7 +155,7 @@ class StoreItemsPage extends PureComponent {
 		console.debug('exec addItem')
 		if (this.state.itemNameText !== '') {
 			db.transaction(tx => {
-				tx.executeSql(insertItem,
+				tx.executeSql(insertStoreItem,
 					[this.state.itemNameText, itemType.STORE, this.state.storeId],
 					() => {
 						console.debug('Success')
