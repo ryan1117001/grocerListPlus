@@ -29,18 +29,25 @@ class StoresPage extends PureComponent {
 	setHeader = (navigation) => {
 		navigation.setOptions({
 			headerTitle: 'Stores',
+			headerStyle: {
+				backgroundColor: '#5C00E7',
+			},
+			headerTintColor: '#FFF',
 			headerRight: () => (
 				<View style={styles.HeaderWrapper}>
 					<IconButton
 						icon='magnify'
+						color='#FFF'
 						onPress={() => { }}
 					/>
 					<IconButton
 						icon='plus'
+						color='#FFF'
 						onPress={this.showAddStoreModal}
 					/>
 					<IconButton
 						icon='dots-vertical'
+						color='#FFF'
 						onPress={(() => navigate('Settings', {}))}
 					/>
 				</View>
@@ -155,9 +162,9 @@ class StoresPage extends PureComponent {
 					onRefresh={this.forceRefresh}
 					refreshing={this.state.isRefreshing}
 					data={this.state.data}
+					keyExtractor={(item) => item.id.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<StoreListComponent
-							key={item.id}
 							store={item}
 							forceRefreshFunction={this.forceRefresh}
 							showDeleteStoreConfirmationFunc={this.showDeleteStoreConfirmation}

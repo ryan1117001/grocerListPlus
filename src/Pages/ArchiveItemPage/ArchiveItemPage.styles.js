@@ -8,5 +8,8 @@ export const styles = StyleSheet.create({
 	Surface: {
 		marginVertical: 1,
 		elevation: 4,
+	},
+	HeaderWrapper: {
+		flexDirection: 'row'
 	}
 });

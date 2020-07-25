@@ -13,7 +13,7 @@ import ItemListComponent from '../../Components/ItemListComponent/ItemListCompon
 class ArchiveItemPage extends PureComponent {
 	constructor(props) {
 		super(props)
-
+		
 		this.state = {
 			showDeleteItemConfirmation: false,
 			itemNameText: '',
@@ -102,9 +102,9 @@ class ArchiveItemPage extends PureComponent {
 					onRefresh={this.forceRefresh}
 					refreshing={this.state.isRefreshing}
 					data={this.state.archivedData}
+					keyExtractor={(item) => item.id.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<ItemListComponent
-							key={item.id}
 							item={item}
 							forceRefreshFunc={this.forceRefresh}
 							showDeleteItemConfirmationFunc={this.showDeleteItemConfirmation}

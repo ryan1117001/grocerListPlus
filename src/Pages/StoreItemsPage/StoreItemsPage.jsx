@@ -11,7 +11,7 @@ import { navigate } from '../../Utils/RootNavigation';
 import {
 	db, deleteItem, insertItem, updateItemType,
 	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName,
-	updatePurchaseDate
+	updateItemPurchaseDate
 } from '../../Utils/SQLConstants';
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 import { itemType } from '../../Utils/TypeConstants'
@@ -42,18 +42,25 @@ class StoreItemsPage extends PureComponent {
 	setHeader = (navigation) => {
 		navigation.setOptions({
 			title: this.state.storeName,
+			headerStyle: {
+				backgroundColor: '#5C00E7',
+			},
+			headerTintColor: '#FFF',
 			headerRight: () => (
 				<View style={styles.HeaderWrapper}>
 					<IconButton
 						icon='magnify'
+						color='#FFF'
 						onPress={() => { }}
 					/>
 					<IconButton
 						icon='pencil-outline'
+						color='#FFF'
 						onPress={this.showEditStoreModal}
 					/>
 					<IconButton
 						icon='dots-vertical'
+						color='#FFF'
 						onPress={(() => navigate('Settings', {}))}
 					/>
 				</View>
@@ -249,9 +256,9 @@ class StoreItemsPage extends PureComponent {
 					onRefresh={this.forceRefresh}
 					style={styles.StoreItemsPageWrapper}
 					data={this.state.storeItemData}
+					keyExtractor={(item) => item.id.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<ItemListComponent
-							key={item.id}
 							item={item}
 							forceRefreshFunc={this.forceRefresh}
 							showDeleteItemConfirmationFunc={this.showDeleteItemConfirmation}

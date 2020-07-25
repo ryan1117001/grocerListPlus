@@ -19,7 +19,15 @@ import { IconButton } from 'react-native-paper';
 function topTabNavigator() {
 	const TopTabNav = createMaterialTopTabNavigator()
 	return (
-		<TopTabNav.Navigator>
+		<TopTabNav.Navigator
+			tabBarOptions={{
+				activeTintColor: '#5C00E7',
+				indicatorStyle: {
+					borderBottomColor: '#5C00E7',
+					borderBottomWidth: 2,
+				},
+			}}
+		>
 			<TopTabNav.Screen
 				name='ArchiveStores'
 				component={ArchiveStorePage}
@@ -60,7 +68,8 @@ function bottomTabNavigator() {
 				component={InventoryContainer}
 				options={{
 					title: 'Inventory',
-					tabBarIcon: 'treasure-chest'
+					tabBarIcon: 'treasure-chest',
+
 				}}
 			/>
 			<BottomTabNav.Screen
@@ -84,9 +93,14 @@ function ArchiveContainer() {
 				component={topTabNavigator}
 				options={{
 					headerTitle: 'Archive',
+					headerStyle: {
+						backgroundColor: '#5C00E7',
+					},
+					headerTintColor: '#FFF',
 					headerRight: () => (
 						<IconButton
 							icon='dots-vertical'
+							color='#FFF'
 							onPress={(() => navigate('Settings', {}))}
 						/>
 					)
@@ -147,6 +161,11 @@ function settingsContainer() {
 				component={SettingsPage}
 				options={{
 					headerTitle: 'Settings',
+					headerStyle: {
+						backgroundColor: '#5C00E7',
+					},
+					headerTintColor: '#FFF',
+
 				}}
 			/>
 		</SettingsStackContainer.Navigator>

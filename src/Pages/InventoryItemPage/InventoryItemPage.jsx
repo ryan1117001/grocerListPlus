@@ -5,12 +5,12 @@ import { List, Button, Provider, Portal, Dialog, Text, Surface, IconButton } fro
 import { Picker } from '@react-native-community/picker'
 import { navigate } from '../../Utils/RootNavigation'
 import {
-	db, selectAllItemJoinedStoresByItemType, insertItem,
+	db, selectAllItemJoinedStoresByItemType, insertInventoryItem,
 	deleteItem, selectAllStores
 } from '../../Utils/SQLConstants';
 import { itemType } from '../../Utils/TypeConstants'
-import moment from 'moment'
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
+import moment from 'moment'
 
 class InventoryItemPage extends PureComponent {
 	constructor(props) {
@@ -34,18 +34,25 @@ class InventoryItemPage extends PureComponent {
 	setHeader = (navigation) => {
 		navigation.setOptions({
 			headerTitle: 'Inventory',
+			headerStyle: {
+				backgroundColor: '#5C00E7',
+			},
+			headerTintColor: '#FFF',
 			headerRight: () => (
 				<View style={styles.HeaderWrapper}>
 					<IconButton
 						icon='magnify'
+						color='#FFF'
 						onPress={() => { }}
 					/>
 					<IconButton
 						icon='plus'
+						color='#FFF'
 						onPress={this.showAddAllItemModal}
 					/>
 					<IconButton
 						icon='dots-vertical'
+						color='#FFF'
 						onPress={(() => navigate('Settings', {}))}
 					/>
 				</View>
@@ -112,7 +119,7 @@ class InventoryItemPage extends PureComponent {
 					this.forceRefresh()
 					this.hideDeleteItemConfirmation()
 				},
-				() => console.debug('error')
+				(error) => { console.debug(error) }
 			)
 		})
 	}
@@ -120,9 +127,10 @@ class InventoryItemPage extends PureComponent {
 	addItem = () => {
 		if (this.state.itemNameText !== '') {
 			console.debug(this.state.itemNameText, this.state.selectedStoreId)
+			var date = moment(new Date()).format('YYYY-MM-DD')
 			db.transaction(tx => {
-				tx.executeSql(insertItem,
-					[this.state.itemNameText, itemType.INVENTORY, this.state.selectedStoreId],
+				tx.executeSql(insertInventoryItem,
+					[this.state.itemNameText, itemType.INVENTORY, this.state.selectedStoreId, date],
 					() => {
 						console.debug('success')
 						this.queryAllInventoriedItems()
@@ -132,8 +140,8 @@ class InventoryItemPage extends PureComponent {
 							selectedStoreId: ''
 						})
 					},
-					() => {
-						console.debug('Error')
+					(error) => {
+						console.debug(error)
 						this.hideAddAllItemModal()
 					}
 				)
@@ -200,9 +208,9 @@ class InventoryItemPage extends PureComponent {
 					refreshing={this.state.isRefreshing}
 					onRefresh={this.forceRefresh}
 					data={this.state.inventoryItemData}
+					keyExtractor={(item) => item.id.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<ItemListComponent
-							key={item.id}
 							item={item}
 							forceRefreshFunc={this.forceRefresh}
 							showDeleteItemConfirmationFunc={this.showDeleteItemConfirmation}

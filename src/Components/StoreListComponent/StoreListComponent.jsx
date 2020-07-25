@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { styles } from './StoreListComponent.styles'
 import { List, Surface, IconButton, Provider, Text } from 'react-native-paper';
 import {
-    db, updateItemsOnUpdateStoreType, updateStoreType
+    db, updateItemsOnUpdateStoreType, updateStoreType, updateStoreArchiveDate
 } from '../../Utils/SQLConstants';
 import PropTypes from 'prop-types';
 import moment from 'moment'
@@ -66,15 +66,25 @@ class StoreListComponent extends PureComponent {
             args = [itemType.ARCHIVE, this.state.id, itemType.STORE]
         }
         db.transaction(tx => {
+            console.debug('exec updateStoreArchiveDate')
+            if (this.state.storeType === storeType.INUSE) {
+                var date = moment(new Date()).format('YYYY-MM-DD')
+                tx.executeSql(updateStoreArchiveDate, [date, this.state.id])
+            }
+            else if (this.state.storeType === storeType.ARCHIVE) {
+                tx.executeSql(updateStoreArchiveDate, [undefined, this.state.id])
+            }
             console.debug('exec updateItemsOnUpdateStoreType')
             tx.executeSql(updateItemsOnUpdateStoreType, args,
-                () => {
-                    console.debug('success')
-                    this.props.forceRefreshFunction()
-                },
+                () => console.debug('success'),
                 () => console.debug('error')
             )
-        })
+        },
+            (error) => { console.debug(error) },
+            () => {
+                console.debug('success')
+                this.props.forceRefreshFunction()
+            })
     }
 
     updateStoreType = (args) => {
@@ -86,8 +96,9 @@ class StoreListComponent extends PureComponent {
                     console.debug('success')
                     this.updateItemsOnUpdateStoreType()
                 },
-                () => console.debug('error')
+                (error) => { console.debug(error) }
             )
+
         })
     }
 
@@ -106,6 +117,18 @@ class StoreListComponent extends PureComponent {
         }
     }
 
+    setDescription = () => {
+        switch (this.state.storeType) {
+            case storeType.INUSE:
+                return <Text>{"Going On: " + moment(this.state.dateToGo).locale('en-US').format('l')}</Text>
+            case storeType.ARCHIVE:
+                return <Text>{"Archived On: " + moment(this.state.archiveDate).locale('en-US').format('l')}</Text>
+            default:
+                <Text>Description Error</Text>
+                console.debug('Description Error')
+        }
+    }
+
     render() {
         return (
             <Provider>
@@ -117,7 +140,7 @@ class StoreListComponent extends PureComponent {
                             onPress={this.navigateToStoreItems}
                             key={this.state.id}
                             title={<Text style={styles.storeTitle}>{this.state.storeName}</Text>}
-                            description={this.state.dateToGo}
+                            description={this.setDescription}
                             left={() =>
                                 <IconButton
                                     icon={this.state.storeType === storeType.ARCHIVE ? 'arrow-left-bold-box-outline' : 'arrow-right-bold-box-outline'}

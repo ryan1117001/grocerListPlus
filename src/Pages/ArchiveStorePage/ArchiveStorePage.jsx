@@ -104,9 +104,9 @@ class ArchiveStorePage extends PureComponent {
           onRefresh={this.forceRefresh}
           refreshing={this.state.isRefreshing}
           data={this.state.data}
+          keyExtractor={(item) => item.id.toString()}
           renderItem={({ item, index, seperator }) => (
             <StoreListComponent
-              key={item.id}
               store={item}
               forceRefreshFunction={this.forceRefresh}
               navigation={this.props.navigation}

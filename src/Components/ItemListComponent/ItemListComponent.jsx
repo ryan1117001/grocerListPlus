@@ -2,9 +2,9 @@ import React, { PureComponent } from 'react';
 import { View } from 'react-native';
 import { IconButton, Surface, Provider, List, Text } from 'react-native-paper'
 import { styles } from './ItemListComponent.styles';
-import { itemType, storeType } from '../../Utils/TypeConstants'
+import { itemType } from '../../Utils/TypeConstants'
 import PropTypes from 'prop-types';
-import { db, updateItemType, updatePurchaseDate } from '../../Utils/SQLConstants'
+import { db, updateItemType, updateItemPurchaseDate, updateArchiveDate } from '../../Utils/SQLConstants'
 import moment from 'moment'
 
 class ItemListComponent extends PureComponent {
@@ -20,6 +20,7 @@ class ItemListComponent extends PureComponent {
 			itemType: props.item.itemType,
 			storeName: props.item.storeName,
 			purchaseDate: props.item.purchaseDate,
+			archiveDate: props.item.archiveDate,
 			id: props.item.id,
 		};
 	}
@@ -65,18 +66,29 @@ class ItemListComponent extends PureComponent {
 				() => console.debug('changeItemType error')
 			)
 			if (this.state.itemType === itemType.STORE) {
-				console.debug('exec updatePurchaseDate')
+				console.debug('exec updateItemPurchaseDate')
 				var date = moment(new Date()).format('YYYY-MM-DD')
 				tx.executeSql(
-					updatePurchaseDate,
-					[date, args[1]],
-					() => console.debug('updatePurchaseDate success'),
-					() => console.debug('updatePurchaseDate error')
+					updateItemPurchaseDate,
+					[date, this.state.id],
+					() => console.debug('updateItemPurchaseDate success'),
+					() => console.debug('updateItemPurchaseDate error')
+				)
+			}
+			else if (this.state.itemType === itemType.INVENTORY) {
+				console.debug('exec updateArchiveDate')
+				var date = moment(new Date()).format('YYYY-MM-DD')
+				tx.executeSql(
+					updateArchiveDate,
+					[date, this.state.id],
+					() => console.debug('updateItemPurchaseDate success'),
+					() => console.debug('updateItemPurchaseDate error')
 				)
 			}
 		},
 			() => console.debug('error'),
 			() => {
+				console.debug('success')
 				this.props.forceRefreshFunc()
 			})
 	}
@@ -86,9 +98,9 @@ class ItemListComponent extends PureComponent {
 			case itemType.STORE:
 				return <Text>Store Temp</Text>
 			case itemType.INVENTORY:
-				return <Text>{this.state.storeName + " | " + moment(this.state.purchaseDate).locale('en-US').format('l')}</Text>
+				return <Text>{this.state.storeName + " | Purchased On: " + moment(this.state.purchaseDate).locale('en-US').format('l')}</Text>
 			case itemType.ARCHIVE:
-				return <Text>{this.state.storeName + " | " + this.state.dateToGo}</Text>
+				return <Text>{this.state.storeName + " | Archived On: " + moment(this.state.archiveDate).locale('en-US').format('l')}</Text>
 			default:
 				<Text>Description Error</Text>
 				console.debug('Description Error')
