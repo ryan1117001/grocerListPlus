@@ -3,7 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { navigationRef, navigate } from './src/Utils/RootNavigation';
+import { navigationRef } from './src/Utils/RootNavigation';
 import { enableScreens } from 'react-native-screens';
 import StoresPage from './src/Pages/StoresPage/StoresPage';
 import StoreItemsPage from './src/Pages/StoreItemsPage/StoreItemsPage'
@@ -14,9 +14,8 @@ import ArchiveStorePage from './src/Pages/ArchiveStorePage/ArchiveStorePage';
 import {
 	db, enableFK, createItemsTable, createStoresTable
 } from './src/Utils/SQLConstants';
-import { IconButton } from 'react-native-paper';
 
-function topTabNavigator() {
+function TopTabNavigator({ navigation: stackNavigation }) {
 	const TopTabNav = createMaterialTopTabNavigator()
 	return (
 		<TopTabNav.Navigator
@@ -31,22 +30,22 @@ function topTabNavigator() {
 			<TopTabNav.Screen
 				name='ArchiveStores'
 				component={ArchiveStorePage}
-				options={{
-					title: 'Archived Stores',
+				initialParams={{
+					stackNavigation: stackNavigation
 				}}
 			/>
 			<TopTabNav.Screen
 				name='ArchiveItems'
 				component={ArchiveItemPage}
-				options={{
-					title: 'Archived Items'
+				initialParams={{
+					stackNavigation: stackNavigation
 				}}
 			/>
 		</TopTabNav.Navigator>
 	)
 }
 
-function bottomTabNavigator() {
+function BottomTabNavigator() {
 	const BottomTabNav = createMaterialBottomTabNavigator();
 
 	return (
@@ -90,21 +89,7 @@ function ArchiveContainer() {
 		<ArchiveStackContainer.Navigator>
 			<ArchiveStackContainer.Screen
 				name='ArchiveContainer'
-				component={topTabNavigator}
-				options={{
-					headerTitle: 'Archive',
-					headerStyle: {
-						backgroundColor: '#5C00E7',
-					},
-					headerTintColor: '#FFF',
-					headerRight: () => (
-						<IconButton
-							icon='dots-vertical'
-							color='#FFF'
-							onPress={(() => navigate('Settings', {}))}
-						/>
-					)
-				}}
+				component={TopTabNavigator}
 			/>
 		</ArchiveStackContainer.Navigator>
 	)
@@ -138,7 +123,7 @@ function InventoryContainer() {
 	)
 }
 
-function bottomTabContainer() {
+function BottomTabContainer() {
 	const BottomStackContainer = createStackNavigator()
 	return (
 		<BottomStackContainer.Navigator
@@ -146,13 +131,13 @@ function bottomTabContainer() {
 		>
 			<BottomStackContainer.Screen
 				name='BottomTabContainer'
-				component={bottomTabNavigator}
+				component={BottomTabNavigator}
 			/>
 		</BottomStackContainer.Navigator>
 	)
 }
 
-function settingsContainer() {
+function SettingsContainer() {
 	const SettingsStackContainer = createStackNavigator()
 	return (
 		<SettingsStackContainer.Navigator>
@@ -198,11 +183,11 @@ export default function App() {
 			>
 				<RootStack.Screen
 					name='BottomTabContainer'
-					component={bottomTabContainer}
+					component={BottomTabContainer}
 				/>
 				<RootStack.Screen
 					name='Settings'
-					component={settingsContainer}
+					component={SettingsContainer}
 				/>
 			</RootStack.Navigator>
 		</NavigationContainer>

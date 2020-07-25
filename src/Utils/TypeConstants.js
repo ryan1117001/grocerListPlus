@@ -9,7 +9,3 @@ export const storeType = {
 	INUSE: 'inUse',
 	ARCHIVE: 'archive'
 }
-
-export default function () {
-	return
-}

@@ -62,7 +62,3 @@ export const selectAllItemJoinedStoresByItemType = `
 // Drop Tables
 export const dropStoreTable = 'DROP TABLE stores;'
 export const dropItemsTable = 'DROP TABLE items;'
-
-export default function () {
-	return
-}

@@ -1,19 +1,22 @@
 import React, { PureComponent } from 'react'
-import { ScrollView, View, RefreshControl, FlatList } from 'react-native'
+import { View, FlatList } from 'react-native'
 import {
-	Provider, Portal, Button, Dialog, Text
+	Provider, Portal, Button, Dialog, Text, IconButton
 } from 'react-native-paper'
 import {
 	db, selectAllItemJoinedStoresByItemType, deleteItem
 } from '../../Utils/SQLConstants'
 import { styles } from './ArchiveItemPage.styles'
+import { globalStyles } from '../../Utils/Global.styles';
 import { itemType } from '../../Utils/TypeConstants'
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 
 class ArchiveItemPage extends PureComponent {
 	constructor(props) {
 		super(props)
-		
+
+		this.setTabHeader(props.navigation)
+
 		this.state = {
 			showDeleteItemConfirmation: false,
 			itemNameText: '',
@@ -23,7 +26,43 @@ class ArchiveItemPage extends PureComponent {
 		}
 	}
 
+	setTabHeader = (navigation) => {
+		navigation.setOptions({
+			title: 'Items'
+		})
+	}
+
+	setStackHeader = (navigation) => {
+		navigation.setOptions({
+			headerTitle: 'Archive',
+			headerStyle: {
+				backgroundColor: '#5C00E7',
+			},
+			headerTintColor: '#FFF',
+			headerRight: () => (
+				<View style={globalStyles.HeaderIconWrapper}>
+					<IconButton
+						icon='magnify'
+						color='#FFF'
+						onPress={() => { }}
+					/>
+					<IconButton
+						icon='plus'
+						color='#FFF'
+						onPress={() => { }}
+					/>
+					<IconButton
+						icon='dots-vertical'
+						color='#FFF'
+						onPress={(() => navigation.navigate('Settings', {}))}
+					/>
+				</View>
+			)
+		})
+	}
+
 	componentDidMount = () => {
+		console.debug('ArchiveItemPage did mount')
 		this._unsubscribe = this.props.navigation.addListener('focus', () => {
 			this.queryAllArchivedItems()
 		})
@@ -31,9 +70,13 @@ class ArchiveItemPage extends PureComponent {
 
 	componentDidCatch(error, info) { }
 
-	componentDidUpdate = () => { }
+	componentDidUpdate = () => {
+		console.debug('ArchiveItemPage did update')
+		this.setStackHeader(this.props.route.params.stackNavigation)
+	}
 
 	componentWillUnmount = () => {
+		console.debug('ArchiveItemPage will unmount')
 		this._unsubscribe();
 	}
 
