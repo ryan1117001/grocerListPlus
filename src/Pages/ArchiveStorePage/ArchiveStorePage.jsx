@@ -1,13 +1,14 @@
 import React, { PureComponent } from 'react';
 import { FlatList, View } from 'react-native';
-import { Provider, Portal, Dialog, Text, Button, IconButton } from 'react-native-paper';
+import { Provider, Portal, Dialog, Text, Button, IconButton, Searchbar } from 'react-native-paper';
 import { styles } from './ArchiveStorePage.styles';
 import { globalStyles } from '../../Utils/Global.styles';
 import {
-	db, selectStoresByStoreType, deleteItemsByStoreId
+	db, selectStoresByStoreType, deleteItemsByStoreId, deleteStore
 } from '../../Utils/SQLConstants';
 import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
 import { storeType } from '../../Utils/TypeConstants';
+import { searchByStoreName } from '../../Utils/SearchUtil'
 
 class ArchiveStorePage extends PureComponent {
 	constructor(props) {
@@ -18,9 +19,11 @@ class ArchiveStorePage extends PureComponent {
 
 		this.state = {
 			storeNameText: '',
-			data: [],
+			archivedStores: [],
+			searchResults: [],
 			isRefreshing: false,
-			storeToDelete: null
+			storeToDelete: null,
+			toggleSearch: false
 		};
 	}
 
@@ -42,7 +45,7 @@ class ArchiveStorePage extends PureComponent {
 					<IconButton
 						icon='magnify'
 						color='#FFF'
-						onPress={() => { }}
+						onPress={this.toggleSearchBar}
 					/>
 					<IconButton
 						icon='dots-vertical'
@@ -75,17 +78,23 @@ class ArchiveStorePage extends PureComponent {
 		console.log('ArchiveStorePage will unmount');
 	}
 
-	showDeleteStoreConfirmation = (id) => {
+	toggleDeleteStoreConfirmation = (id) => {
 		this.setState({
-			showDeleteStoreConfirmation: true,
-			storeToDelete: id
+			storeToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
+			toggleDeleteStoreConfirmation: !this.state.toggleDeleteStoreConfirmation,
 		})
 	}
 
-	hideDeleteStoreConfirmation = () => {
+	toggleSearchBar = () => {
 		this.setState({
-			showDeleteStoreConfirmation: false,
-			storeToDelete: null
+			toggleSearch: !this.state.toggleSearch
+		})
+	}
+
+	searchForStore = () => {
+		const { archivedStores, searchText } = this.state
+		this.setState({
+			searchResults: searchByStoreName(archivedStores, searchText)
 		})
 	}
 
@@ -100,7 +109,7 @@ class ArchiveStorePage extends PureComponent {
 			() => {
 				console.debug('parent refresh')
 				this.forceRefresh()
-				this.hideDeleteStoreConfirmation()
+				this.toggleDeleteStoreConfirmation()
 			}
 		)
 	}
@@ -124,7 +133,7 @@ class ArchiveStorePage extends PureComponent {
 				(_, { rows: { _array } }) => {
 					console.debug(_array)
 					this.setState({
-						data: _array
+						archivedStores: _array
 					})
 					console.debug('success')
 				},
@@ -136,26 +145,32 @@ class ArchiveStorePage extends PureComponent {
 	render() {
 		return (
 			<Provider>
+				{this.state.toggleSearch && <Searchbar
+					placeholder='Search'
+					onChangeText={query => this.setState({ searchText: query })}
+					value={this.state.searchText}
+					onSubmitEditing={this.searchForStore}
+				/>}
 				<FlatList
 					style={styles.HomePageWrapper}
 					onRefresh={this.forceRefresh}
 					refreshing={this.state.isRefreshing}
-					data={this.state.data}
+					data={this.state.toggleSearch ? this.state.searchResults : this.state.archivedStores}
 					keyExtractor={(item) => item.id.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<StoreListComponent
 							store={item}
 							forceRefreshFunction={this.forceRefresh}
 							navigation={this.props.navigation}
-							showDeleteStoreConfirmationFunc={this.showDeleteStoreConfirmation}
+							showDeleteStoreConfirmationFunc={this.toggleDeleteStoreConfirmation}
 						/>
 					)}
 				/>
 				{/* Confirm Deletion */}
 				<Portal>
 					<Dialog
-						visible={this.state.showDeleteStoreConfirmation}
-						onDismiss={this.hideDeleteStoreConfirmation}>
+						visible={this.state.toggleDeleteStoreConfirmation}
+						onDismiss={this.toggleDeleteStoreConfirmation}>
 						<Dialog.Title>Delete Items</Dialog.Title>
 						<Dialog.Content>
 							<Text>
@@ -163,7 +178,7 @@ class ArchiveStorePage extends PureComponent {
 							</Text>
 						</Dialog.Content>
 						<Dialog.Actions>
-							<Button onPress={this.hideDeleteStoreConfirmation}>Cancel</Button>
+							<Button onPress={this.toggleDeleteStoreConfirmation}>Cancel</Button>
 							<Button onPress={this.deleteStore}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>

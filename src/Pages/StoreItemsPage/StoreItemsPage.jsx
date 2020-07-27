@@ -4,10 +4,9 @@ import { styles } from './StoreItemsPage.styles'
 import { View, TextInput, FlatList } from 'react-native';
 import {
 	Modal, Provider, Portal,
-	Button, Dialog, IconButton, Text
+	Button, Dialog, IconButton, Text, Searchbar
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
-import { navigate } from '../../Utils/RootNavigation';
 import {
 	db, deleteItem, insertStoreItem,
 	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName
@@ -15,16 +14,17 @@ import {
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 import { itemType } from '../../Utils/TypeConstants'
 import moment from 'moment'
+import { searchByItemName } from '../../Utils/SearchUtil'
 
 class StoreItemsPage extends PureComponent {
 	constructor(props) {
 		super(props);
 
 		this.state = {
-			showDeleteItemConfirmation: false,
-			showCalendarModal: false,
-			showAddItemModal: false,
-			showEditStoreModal: false,
+			toggleDeleteItemConfirmation: false,
+			toggleCalendarModal: false,
+			toggleAddItemModal: false,
+			toggleEditStoreModal: false,
 			selectedDate: props.route.params.dateToGo,
 			storeName: props.route.params.storeName,
 			storeId: props.route.params.storeId,
@@ -32,7 +32,10 @@ class StoreItemsPage extends PureComponent {
 			storeNameText: '',
 			isRefreshing: false,
 			storeItemData: [],
-			itemToDelete: ''
+			searchResults: [],
+			itemToDelete: '',
+			searchText: '',
+			toggleSearch: false
 		};
 
 		this.setHeader(props.navigation)
@@ -50,17 +53,17 @@ class StoreItemsPage extends PureComponent {
 					<IconButton
 						icon='magnify'
 						color='#FFF'
-						onPress={() => { }}
+						onPress={this.toggleSearchBar}
 					/>
 					<IconButton
 						icon='pencil-outline'
 						color='#FFF'
-						onPress={this.showEditStoreModal}
+						onPress={this.toggleEditStoreModal}
 					/>
 					<IconButton
 						icon='dots-vertical'
 						color='#FFF'
-						onPress={(() => navigate('Settings', {}))}
+						onPress={(() => navigation.navigate('Settings', {}))}
 					/>
 				</View>
 			)
@@ -75,61 +78,50 @@ class StoreItemsPage extends PureComponent {
 
 	componentDidCatch(error, info) { }
 
-	componentDidUpdate = () => { }
+	componentDidUpdate = () => {
+		console.debug('StoreItemsPage did update')
+		console.debug(this.state.storeName)
+	}
 
 	componentWillUnmount = () => {
 		this._unsubscribe();
 	}
 
-	hideCalendarModal = () => {
+	toggleCalendarModal = () => {
 		this.setState({
-			showCalendarModal: false
+			toggleCalendarModal: !this.state.toggleCalendarModal
 		})
 	}
 
-	showCalendarModal = () => {
+	toggleAddItemModal = () => {
 		this.setState({
-			showCalendarModal: true
+			toggleAddItemModal: !this.state.toggleAddItemModal
 		})
 	}
 
-	hideAddItemModal = () => {
+	toggleEditStoreModal = () => {
 		this.setState({
-			showAddItemModal: false
+			toggleEditStoreModal: !this.state.toggleEditStoreModal
 		})
 	}
 
-	showAddItemModal = () => {
+	toggleDeleteItemConfirmation = (id) => {
 		this.setState({
-			showAddItemModal: true
+			itemToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
+			toggleDeleteItemConfirmation: !this.state.toggleDeleteItemConfirmation,
 		})
 	}
 
-
-	hideEditStoreModal = () => {
+	toggleSearchBar = () => {
 		this.setState({
-			showEditStoreModal: false
+			toggleSearch: !this.state.toggleSearch
 		})
 	}
 
-	showEditStoreModal = () => {
+	searchForItem = () => {
+		const { storeItemData, searchText } = this.state
 		this.setState({
-			showEditStoreModal: true
-		})
-	}
-
-	showDeleteItemConfirmation = (id) => {
-		this.setState({
-			showDeleteItemConfirmation: true,
-			itemToDelete: id
-		})
-	}
-
-
-	hideDeleteItemConfirmation = () => {
-		this.setState({
-			showDeleteItemConfirmation: false,
-			itemToDelete: null
+			searchResults: searchByItemName(storeItemData, searchText)
 		})
 	}
 
@@ -148,7 +140,7 @@ class StoreItemsPage extends PureComponent {
 				() => console.debug('Error')
 			)
 		})
-		this.hideCalendarModal()
+		this.toggleCalendarModal()
 	}
 
 	addItem = () => {
@@ -160,7 +152,7 @@ class StoreItemsPage extends PureComponent {
 					() => {
 						console.debug('Success')
 						this.queryAllStoreItems()
-						this.hideAddItemModal()
+						this.toggleAddItemModal()
 						this.setState({
 							itemNameText: ''
 						})
@@ -179,7 +171,7 @@ class StoreItemsPage extends PureComponent {
 				[id],
 				() => {
 					console.debug('success')
-					this.hideDeleteItemConfirmation()
+					this.toggleDeleteItemConfirmation(id)
 					this.forceRefresh()
 				},
 				() => console.debug('error')
@@ -221,10 +213,12 @@ class StoreItemsPage extends PureComponent {
 				[this.state.storeNameText, this.state.storeId],
 				() => {
 					console.debug('success')
+					this.toggleEditStoreModal()
 					this.setState({
 						storeName: this.state.storeNameText,
 						storeNameText: '',
 					})
+					this.setHeader(this.props.navigation)
 				},
 				() => console.debug('error')
 			)
@@ -232,19 +226,23 @@ class StoreItemsPage extends PureComponent {
 	}
 
 	render() {
-
 		return (
 			<Provider>
+				{this.state.toggleSearch && <Searchbar
+					placeholder='Search'
+					onChangeText={query => this.setState({ searchText: query })}
+					value={this.state.searchText}
+					onSubmitEditing={this.searchForItem}
+				/>}
 				{/* Store name and dates */}
-
 				<View style={styles.TitleRowWrapper}>
 					<Button
-						onPress={this.showAddItemModal}
+						onPress={this.toggleAddItemModal}
 					>
 						Add An Item
            				</Button>
 					<Button
-						onPress={this.showCalendarModal}
+						onPress={this.toggleCalendarModal}
 					>
 						{this.state.selectedDate}
 					</Button>
@@ -254,20 +252,20 @@ class StoreItemsPage extends PureComponent {
 					refreshing={this.state.isRefreshing}
 					onRefresh={this.forceRefresh}
 					style={styles.StoreItemsPageWrapper}
-					data={this.state.storeItemData}
+					data={this.state.toggleSearch ? this.state.searchResults : this.state.storeItemData}
 					keyExtractor={(item) => item.id.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<ItemListComponent
 							item={item}
 							forceRefreshFunc={this.forceRefresh}
-							showDeleteItemConfirmationFunc={this.showDeleteItemConfirmation}
+							showDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
 						/>
 					)}
 				/>
 
 
 				<Portal>
-					<Modal visible={this.state.showCalendarModal} onDismiss={this.hideCalendarModal}>
+					<Modal visible={this.state.toggleCalendarModal} onDismiss={this.toggleCalendarModal}>
 						<Calendar
 							style={styles.CalendarWrapper}
 							theme={{
@@ -296,8 +294,8 @@ class StoreItemsPage extends PureComponent {
 
 				<Portal>
 					<Dialog
-						visible={this.state.showAddItemModal}
-						onDismiss={this.hideAddItemModal}>
+						visible={this.state.toggleAddItemModal}
+						onDismiss={this.toggleAddItemModal}>
 						<Dialog.Title>Add Item</Dialog.Title>
 						<Dialog.Content>
 							<TextInput
@@ -306,7 +304,7 @@ class StoreItemsPage extends PureComponent {
 							/>
 						</Dialog.Content>
 						<Dialog.Actions>
-							<Button onPress={this.hideAddItemModal}>Cancel</Button>
+							<Button onPress={this.toggleAddItemModal}>Cancel</Button>
 							<Button onPress={this.addItem}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>
@@ -314,8 +312,8 @@ class StoreItemsPage extends PureComponent {
 				{/* edit store name */}
 				<Portal>
 					<Dialog
-						visible={this.state.showEditStoreModal}
-						onDismiss={this.hideEditStoreModal}>
+						visible={this.state.toggleEditStoreModal}
+						onDismiss={this.toggleEditStoreModal}>
 						<Dialog.Title>Edit Store Name</Dialog.Title>
 						<Dialog.Content>
 							<TextInput
@@ -324,7 +322,7 @@ class StoreItemsPage extends PureComponent {
 							/>
 						</Dialog.Content>
 						<Dialog.Actions>
-							<Button onPress={this.hideEditStoreModal}>Cancel</Button>
+							<Button onPress={this.toggleEditStoreModal}>Cancel</Button>
 							<Button onPress={this.editStoreName}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>
@@ -333,8 +331,8 @@ class StoreItemsPage extends PureComponent {
 				{/* delete item confirmation */}
 				<Portal>
 					<Dialog
-						visible={this.state.showDeleteItemConfirmation}
-						onDismiss={this.hideDeleteItemConfirmation}>
+						visible={this.state.toggleDeleteItemConfirmation}
+						onDismiss={this.toggleDeleteItemConfirmation}>
 						<Dialog.Title>Delete Items</Dialog.Title>
 						<Dialog.Content>
 							<Text>
@@ -342,7 +340,7 @@ class StoreItemsPage extends PureComponent {
 							</Text>
 						</Dialog.Content>
 						<Dialog.Actions>
-							<Button onPress={this.hideDeleteItemConfirmation}>Cancel</Button>
+							<Button onPress={this.toggleDeleteItemConfirmation}>Cancel</Button>
 							<Button onPress={this.deleteItem.bind(this, this.state.itemToDelete)}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>

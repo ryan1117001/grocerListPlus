@@ -1,14 +1,14 @@
 import React, { PureComponent } from 'react';
 import { View, TextInput, FlatList } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { Button, Dialog, Portal, Provider, IconButton, Text } from 'react-native-paper';
-import { navigate } from '../../Utils/RootNavigation';
+import { Button, Dialog, Portal, Provider, IconButton, Text, Searchbar } from 'react-native-paper';
 import {
 	db, insertStore, selectStoresByStoreType, deleteStore, deleteItemsByStoreId
 } from '../../Utils/SQLConstants';
 import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
 import moment from 'moment'
 import { storeType } from '../../Utils/TypeConstants';
+import { searchByStoreName } from '../../Utils/SearchUtil'
 
 class StoresPage extends PureComponent {
 	constructor(props) {
@@ -17,12 +17,14 @@ class StoresPage extends PureComponent {
 		this.setHeader(props.navigation)
 
 		this.state = {
-			showAddStoreModal: false,
-			showDeleteStoreConfirmation: false,
+			toggleShowAddStoreModal: false,
+			toggleDeleteStoreConfirmation: false,
 			storeNameText: '',
-			data: [],
+			stores: [],
+			searchResults: [],
 			isRefreshing: false,
-			storeToDelete: null
+			storeToDelete: null,
+			toggleSearch: false
 		};
 	}
 
@@ -38,17 +40,17 @@ class StoresPage extends PureComponent {
 					<IconButton
 						icon='magnify'
 						color='#FFF'
-						onPress={() => { }}
+						onPress={this.toggleSearchBar}
 					/>
 					<IconButton
 						icon='plus'
 						color='#FFF'
-						onPress={this.showAddStoreModal}
+						onPress={this.toggleShowAddStoreModal}
 					/>
 					<IconButton
 						icon='dots-vertical'
 						color='#FFF'
-						onPress={(() => navigate('Settings', {}))}
+						onPress={(() => navigation.navigate('Settings', {}))}
 					/>
 				</View>
 			)
@@ -78,7 +80,7 @@ class StoresPage extends PureComponent {
 				(_, { rows: { _array } }) => {
 					console.debug(_array)
 					this.setState({
-						data: _array
+						stores: _array
 					})
 					console.debug('success')
 				},
@@ -87,29 +89,29 @@ class StoresPage extends PureComponent {
 		})
 	}
 
-	showAddStoreModal = () => {
+	toggleShowAddStoreModal = () => {
 		this.setState({
-			showAddStoreModal: true
+			toggleShowAddStoreModal: !this.state.toggleShowAddStoreModal
 		});
 	};
 
-	hideAddStoreModal = () => {
+	toggleDeleteStoreConfirmation = (id) => {
 		this.setState({
-			showAddStoreModal: false
-		});
-	}
-
-	showDeleteStoreConfirmation = (id) => {
-		this.setState({
-			showDeleteStoreConfirmation: true,
-			storeToDelete: id
+			storeToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
+			toggleDeleteStoreConfirmation: !this.state.toggleDeleteStoreConfirmation,
 		})
 	}
 
-	hideDeleteStoreConfirmation = () => {
+	toggleSearchBar = () => {
 		this.setState({
-			showDeleteStoreConfirmation: false,
-			storeToDelete: null
+			toggleSearch: !this.state.toggleSearch
+		})
+	}
+
+	searchForStore = () => {
+		const { stores, searchText } = this.state
+		this.setState({
+			searchResults: searchByStoreName(stores, searchText)
 		})
 	}
 
@@ -124,7 +126,7 @@ class StoresPage extends PureComponent {
 			() => {
 				console.debug('parent refresh')
 				this.forceRefresh()
-				this.hideDeleteStoreConfirmation()
+				this.toggleDeleteStoreConfirmation()
 			}
 		)
 	}
@@ -136,7 +138,7 @@ class StoresPage extends PureComponent {
 			tx.executeSql(insertStore, [this.state.storeNameText, date, storeType.INUSE],
 				() => {
 					console.debug("Success")
-					this.hideAddStoreModal()
+					this.toggleShowAddStoreModal()
 					this.queryStores()
 				},
 				() => console.debug("Error")
@@ -157,17 +159,23 @@ class StoresPage extends PureComponent {
 	render() {
 		return (
 			<Provider>
+				{this.state.toggleSearch && <Searchbar
+					placeholder='Search'
+					onChangeText={query => this.setState({ searchText: query })}
+					value={this.state.searchText}
+					onSubmitEditing={this.searchForStore}
+				/>}
 				<FlatList
 					style={styles.HomePageWrapper}
 					onRefresh={this.forceRefresh}
 					refreshing={this.state.isRefreshing}
-					data={this.state.data}
+					data={this.state.toggleSearch ? this.state.searchResults : this.state.stores}
 					keyExtractor={(item) => item.id.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<StoreListComponent
 							store={item}
 							forceRefreshFunction={this.forceRefresh}
-							showDeleteStoreConfirmationFunc={this.showDeleteStoreConfirmation}
+							showDeleteStoreConfirmationFunc={this.toggleDeleteStoreConfirmation}
 							navigation={this.props.navigation}
 						/>
 					)}
@@ -176,8 +184,8 @@ class StoresPage extends PureComponent {
 				{/* add new store */}
 				<Portal>
 					<Dialog
-						visible={this.state.showAddStoreModal}
-						onDismiss={this.hideAddStoreModal}>
+						visible={this.state.toggleShowAddStoreModal}
+						onDismiss={this.toggleShowAddStoreModal}>
 						<Dialog.Title>Add A Store</Dialog.Title>
 						<Dialog.Content>
 							<TextInput
@@ -186,7 +194,7 @@ class StoresPage extends PureComponent {
 							/>
 						</Dialog.Content>
 						<Dialog.Actions>
-							<Button onPress={this.hideAddStoreModal}>Cancel</Button>
+							<Button onPress={this.toggleShowAddStoreModal}>Cancel</Button>
 							<Button onPress={this.addStoreName}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>
@@ -194,8 +202,8 @@ class StoresPage extends PureComponent {
 				{/* Confirm Deletion */}
 				<Portal>
 					<Dialog
-						visible={this.state.showDeleteStoreConfirmation}
-						onDismiss={this.hideDeleteStoreConfirmation}>
+						visible={this.state.toggleDeleteStoreConfirmation}
+						onDismiss={this.toggleDeleteStoreConfirmation}>
 						<Dialog.Title>Delete Items</Dialog.Title>
 						<Dialog.Content>
 							<Text>
@@ -203,7 +211,7 @@ class StoresPage extends PureComponent {
 							</Text>
 						</Dialog.Content>
 						<Dialog.Actions>
-							<Button onPress={this.hideDeleteStoreConfirmation}>Cancel</Button>
+							<Button onPress={this.toggleDeleteStoreConfirmation}>Cancel</Button>
 							<Button onPress={this.deleteStore}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>

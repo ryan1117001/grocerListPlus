@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react'
 import { View, FlatList } from 'react-native'
 import {
-	Provider, Portal, Button, Dialog, Text, IconButton
+	Provider, Portal, Button, Dialog, Text, IconButton, Searchbar
 } from 'react-native-paper'
 import {
 	db, selectAllItemJoinedStoresByItemType, deleteItem
@@ -10,6 +10,7 @@ import { styles } from './ArchiveItemPage.styles'
 import { globalStyles } from '../../Utils/Global.styles';
 import { itemType } from '../../Utils/TypeConstants'
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
+import { searchByItemName } from '../../Utils/SearchUtil'
 
 class ArchiveItemPage extends PureComponent {
 	constructor(props) {
@@ -18,11 +19,13 @@ class ArchiveItemPage extends PureComponent {
 		this.setTabHeader(props.navigation)
 
 		this.state = {
-			showDeleteItemConfirmation: false,
+			toggleDeleteItemConfirmation: false,
 			itemNameText: '',
 			isRefreshing: false,
-			archivedData: [],
-			itemToDelete: null
+			archivedItems: [],
+			searchResults: [],
+			itemToDelete: null,
+			toggleSearch: false
 		}
 	}
 
@@ -44,12 +47,7 @@ class ArchiveItemPage extends PureComponent {
 					<IconButton
 						icon='magnify'
 						color='#FFF'
-						onPress={() => { }}
-					/>
-					<IconButton
-						icon='plus'
-						color='#FFF'
-						onPress={() => { }}
+						onPress={this.toggleSearchBar}
 					/>
 					<IconButton
 						icon='dots-vertical'
@@ -80,18 +78,23 @@ class ArchiveItemPage extends PureComponent {
 		this._unsubscribe();
 	}
 
-	showDeleteItemConfirmation = (id) => {
+	toggleDeleteItemConfirmation = (id) => {
 		this.setState({
-			showDeleteItemConfirmation: true,
-			itemToDelete: id
+			itemToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
+			toggleDeleteItemConfirmation: !this.state.toggleDeleteItemConfirmation,
 		})
 	}
 
-
-	hideDeleteItemConfirmation = () => {
+	toggleSearchBar = () => {
 		this.setState({
-			showDeleteItemConfirmation: false,
-			itemToDelete: null
+			toggleSearch: !this.state.toggleSearch
+		})
+	}
+
+	searchForItem = () => {
+		const { archivedItems, searchText } = this.state
+		this.setState({
+			searchResults: searchByItemName(archivedItems, searchText)
 		})
 	}
 
@@ -103,7 +106,7 @@ class ArchiveItemPage extends PureComponent {
 				[this.state.itemToDelete],
 				() => {
 					console.debug('success')
-					this.hideDeleteItemConfirmation()
+					this.toggleDeleteItemConfirmation()
 					this.forceRefresh()
 				},
 				() => console.debug('error')
@@ -119,7 +122,7 @@ class ArchiveItemPage extends PureComponent {
 				[itemType.ARCHIVE],
 				(_, { rows: { _array } }) => {
 					this.setState({
-						archivedData: _array
+						archivedItems: _array
 					})
 				},
 				() => console.debug('Error')
@@ -140,25 +143,31 @@ class ArchiveItemPage extends PureComponent {
 	render() {
 		return (
 			<Provider>
+				{this.state.toggleSearch && <Searchbar
+					placeholder='Search'
+					onChangeText={query => this.setState({ searchText: query })}
+					value={this.state.searchText}
+					onSubmitEditing={this.searchForItem}
+				/>}
 				<FlatList
 					style={styles.ArchiveItemPageWrapper}
 					onRefresh={this.forceRefresh}
 					refreshing={this.state.isRefreshing}
-					data={this.state.archivedData}
+					data={this.state.toggleSearch ? this.state.searchResults : this.state.archivedItems}
 					keyExtractor={(item) => item.id.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<ItemListComponent
 							item={item}
 							forceRefreshFunc={this.forceRefresh}
-							showDeleteItemConfirmationFunc={this.showDeleteItemConfirmation}
+							showDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
 						/>
 					)}
 				/>
 				{/* TODO: add item modal */}
 				<Portal>
 					<Dialog
-						visible={this.state.showDeleteItemConfirmation}
-						onDismiss={this.hideDeleteItemConfirmation}>
+						visible={this.state.toggleDeleteItemConfirmation}
+						onDismiss={this.toggleDeleteItemConfirmation}>
 						<Dialog.Title>Delete Items</Dialog.Title>
 						<Dialog.Content>
 							<Text>
@@ -166,7 +175,7 @@ class ArchiveItemPage extends PureComponent {
 							</Text>
 						</Dialog.Content>
 						<Dialog.Actions>
-							<Button onPress={this.hideDeleteItemConfirmation}>Cancel</Button>
+							<Button onPress={this.toggleDeleteItemConfirmation}>Cancel</Button>
 							<Button onPress={this.deleteItem}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>

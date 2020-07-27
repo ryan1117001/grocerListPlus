@@ -17,7 +17,6 @@ class StoreListComponent extends PureComponent {
         console.debug(props)
 
         this.state = {
-            showMenuModal: false,
             id: props.store.id,
             storeName: props.store.storeName,
             storeType: props.store.storeType,
@@ -43,18 +42,6 @@ class StoreListComponent extends PureComponent {
             storeName: this.state.storeName,
             storeId: this.state.id,
             dateToGo: this.state.dateToGo,
-        })
-    }
-
-    showMenuModal = () => {
-        this.setState({
-            showMenuModal: true
-        })
-    }
-
-    hideMenuModal = () => {
-        this.setState({
-            showMenuModal: false
         })
     }
 

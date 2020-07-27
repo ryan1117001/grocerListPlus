@@ -1,9 +1,8 @@
 import React, { PureComponent } from 'react'
-import { View, ScrollView, RefreshControl, TextInput, FlatList } from 'react-native';
+import { View, TextInput, FlatList } from 'react-native';
 import { styles } from './InventoryItemPage.styles'
-import { List, Button, Provider, Portal, Dialog, Text, Surface, IconButton } from 'react-native-paper'
+import { Button, Provider, Portal, Dialog, Text, IconButton, Searchbar } from 'react-native-paper'
 import { Picker } from '@react-native-community/picker'
-import { navigate } from '../../Utils/RootNavigation'
 import {
 	db, selectAllItemJoinedStoresByItemType, insertInventoryItem,
 	deleteItem, selectAllStores
@@ -11,6 +10,7 @@ import {
 import { itemType } from '../../Utils/TypeConstants'
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 import moment from 'moment'
+import { searchByItemName } from '../../Utils/SearchUtil'
 
 class InventoryItemPage extends PureComponent {
 	constructor(props) {
@@ -21,13 +21,15 @@ class InventoryItemPage extends PureComponent {
 		this.state = {
 			inventoryItemData: [],
 			isRefreshing: false,
-			showAddAllItemModal: false,
-			showDeleteItemConfirmation: false,
+			toggleShowAddAllItemModal: false,
+			toggleDeleteItemConfirmation: false,
 			itemNameText: '',
 			stores: [],
+			searchResults: [],
 			selectedStoreId: 0,
 			textInput: '',
-			itemToDelete: null
+			itemToDelete: null,
+			toggleSearch: false
 		};
 	}
 
@@ -43,17 +45,17 @@ class InventoryItemPage extends PureComponent {
 					<IconButton
 						icon='magnify'
 						color='#FFF'
-						onPress={() => { }}
+						onPress={this.toggleSearchBar}
 					/>
 					<IconButton
 						icon='plus'
 						color='#FFF'
-						onPress={this.showAddAllItemModal}
+						onPress={this.toggleShowAddAllItemModal}
 					/>
 					<IconButton
 						icon='dots-vertical'
 						color='#FFF'
-						onPress={(() => navigate('Settings', {}))}
+						onPress={(() => navigation.navigate('Settings', {}))}
 					/>
 				</View>
 			)
@@ -117,7 +119,7 @@ class InventoryItemPage extends PureComponent {
 				() => {
 					console.debug('success')
 					this.forceRefresh()
-					this.hideDeleteItemConfirmation()
+					this.toggleDeleteItemConfirmation()
 				},
 				(error) => { console.debug(error) }
 			)
@@ -134,7 +136,7 @@ class InventoryItemPage extends PureComponent {
 					() => {
 						console.debug('success')
 						this.queryAllInventoriedItems()
-						this.hideAddAllItemModal()
+						this.toggleShowAddAllItemModal()
 						this.setState({
 							itemNameText: '',
 							selectedStoreId: ''
@@ -142,36 +144,23 @@ class InventoryItemPage extends PureComponent {
 					},
 					(error) => {
 						console.debug(error)
-						this.hideAddAllItemModal()
+						this.toggleShowAddAllItemModal()
 					}
 				)
 			})
 		}
 	}
 
-	showAddAllItemModal = () => {
+	toggleShowAddAllItemModal = () => {
 		this.setState({
-			showAddAllItemModal: true
+			toggleShowAddAllItemModal: !this.state.toggleShowAddAllItemModal
 		})
 	}
 
-	hideAddAllItemModal = () => {
+	toggleDeleteItemConfirmation = (id) => {
 		this.setState({
-			showAddAllItemModal: false
-		})
-	}
-
-	showDeleteItemConfirmation = (id) => {
-		this.setState({
-			showDeleteItemConfirmation: true,
-			itemToDelete: id
-		})
-	}
-
-	hideDeleteItemConfirmation = () => {
-		this.setState({
-			showDeleteItemConfirmation: false,
-			itemToDelete: null
+			itemToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
+			toggleDeleteItemConfirmation: !this.state.toggleDeleteItemConfirmation,
 		})
 	}
 
@@ -183,6 +172,19 @@ class InventoryItemPage extends PureComponent {
 		this.queryAllStores()
 		this.setState({
 			isRefreshing: false,
+		})
+	}
+
+	toggleSearchBar = () => {
+		this.setState({
+			toggleSearch: !this.state.toggleSearch
+		})
+	}
+
+	searchForStore = () => {
+		const { inventoryItemData, searchText } = this.state
+		this.setState({
+			searchResults: searchByItemName(inventoryItemData, searchText)
 		})
 	}
 
@@ -202,25 +204,31 @@ class InventoryItemPage extends PureComponent {
 
 		return (
 			<Provider>
+				{this.state.toggleSearch && <Searchbar
+					placeholder='Search'
+					onChangeText={query => this.setState({ searchText: query })}
+					value={this.state.searchText}
+					onSubmitEditing={this.searchForStore}
+				/>}
 				{/* Showing data */}
 				<FlatList
 					style={styles.InventoryItemPageWrapper}
 					refreshing={this.state.isRefreshing}
 					onRefresh={this.forceRefresh}
-					data={this.state.inventoryItemData}
+					data={this.state.toggleSearch ? this.state.searchResults : this.state.inventoryItemData}
 					keyExtractor={(item) => item.id.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<ItemListComponent
 							item={item}
 							forceRefreshFunc={this.forceRefresh}
-							showDeleteItemConfirmationFunc={this.showDeleteItemConfirmation}
+							showDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
 						/>
 					)}
 				/>
 				<Portal>
 					<Dialog
-						visible={this.state.showAddAllItemModal}
-						onDismiss={this.hideAddAllItemModal}>
+						visible={this.state.toggleShowAddAllItemModal}
+						onDismiss={this.toggleShowAddAllItemModal}>
 						<Dialog.ScrollArea>
 							<Dialog.Title> Add Item </Dialog.Title>
 							<Dialog.Content>
@@ -246,7 +254,7 @@ class InventoryItemPage extends PureComponent {
 
 							</Dialog.Content>
 							<Dialog.Actions>
-								<Button onPress={this.hideAddAllItemModal}>Cancel</Button>
+								<Button onPress={this.toggleShowAddAllItemModal}>Cancel</Button>
 								<Button onPress={this.addItem}>Done</Button>
 							</Dialog.Actions>
 						</Dialog.ScrollArea>
@@ -255,8 +263,8 @@ class InventoryItemPage extends PureComponent {
 				{/* Confirm Deletion */}
 				<Portal>
 					<Dialog
-						visible={this.state.showDeleteItemConfirmation}
-						onDismiss={this.hideDeleteItemConfirmation}>
+						visible={this.state.toggleDeleteItemConfirmation}
+						onDismiss={this.toggleDeleteItemConfirmation}>
 						<Dialog.Title>Delete Items</Dialog.Title>
 						<Dialog.Content>
 							<Text>
@@ -264,7 +272,7 @@ class InventoryItemPage extends PureComponent {
 							</Text>
 						</Dialog.Content>
 						<Dialog.Actions>
-							<Button onPress={this.hideDeleteItemConfirmation}>Cancel</Button>
+							<Button onPress={this.toggleDeleteItemConfirmation}>Cancel</Button>
 							<Button onPress={this.deleteItem}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>
