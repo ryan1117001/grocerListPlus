@@ -90,6 +90,7 @@ class ItemListComponent extends PureComponent {
 			() => {
 				console.debug('success')
 				this.props.forceRefreshFunc()
+				this.props.toggleSnackBarFunc(this.state.id)
 			})
 	}
 
@@ -127,10 +128,9 @@ class ItemListComponent extends PureComponent {
 							right={() =>
 								<IconButton
 									icon='trash-can-outline'
-									onPress={() => this.props.showDeleteItemConfirmationFunc(this.state.id)}
+									onPress={() => this.props.toggleDeleteItemConfirmationFunc(this.state.id)}
 								/>
 							}
-
 						/>
 					</Surface>
 				</View>
@@ -144,8 +144,9 @@ ItemListComponent.propTypes = {
 	storeName: PropTypes.string,
 	id: PropTypes.number,
 	dateToGo: PropTypes.string,
-	showDeleteItemConfirmation: PropTypes.func,
-	forceRefreshFunc: PropTypes.func
+	toggleDeleteItemConfirmationFunc: PropTypes.func,
+	forceRefreshFunc: PropTypes.func,
+	toggleSnackBarFunc: PropTypes.func
 };
 
 ItemListComponent.defaultProps = {

@@ -3,12 +3,12 @@ import PropTypes from 'prop-types';
 import { styles } from './StoreItemsPage.styles'
 import { View, TextInput, FlatList } from 'react-native';
 import {
-	Modal, Provider, Portal,
+	Modal, Provider, Portal, Snackbar,
 	Button, Dialog, IconButton, Text, Searchbar
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
 import {
-	db, deleteItem, insertStoreItem,
+	db, deleteItem, insertStoreItem, updateItemType,
 	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName
 } from '../../Utils/SQLConstants';
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
@@ -35,7 +35,9 @@ class StoreItemsPage extends PureComponent {
 			searchResults: [],
 			itemToDelete: '',
 			searchText: '',
-			toggleSearch: false
+			toggleSearch: false,
+			toggleSnackBar: false,
+			snackBarItemId: null
 		};
 
 		this.setHeader(props.navigation)
@@ -107,7 +109,7 @@ class StoreItemsPage extends PureComponent {
 
 	toggleDeleteItemConfirmation = (id) => {
 		this.setState({
-			itemToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
+			itemToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? this.state.itemToDelete : id,
 			toggleDeleteItemConfirmation: !this.state.toggleDeleteItemConfirmation,
 		})
 	}
@@ -116,6 +118,15 @@ class StoreItemsPage extends PureComponent {
 		this.setState({
 			toggleSearch: !this.state.toggleSearch
 		})
+	}
+
+	toggleSnackBar = (id) => {
+		console.debug('ID: ' + id)
+		this.setState({
+			snackBarItemId: id == null || id == undefined ? this.state.snackBarItemId : id,
+			toggleSnackBar: true
+		})
+		console.debug('ID: ' + this.state.snackBarItemId)
 	}
 
 	searchForItem = () => {
@@ -161,6 +172,29 @@ class StoreItemsPage extends PureComponent {
 				)
 			})
 		}
+	}
+
+	/**
+	 * it will ever only be the undo back to the store item page
+	 */
+	undoUpdateItemType = () => {
+		db.transaction(tx => {
+			console.debug('exec changeItemType: ' + this.state.snackBarItemId)
+			tx.executeSql(
+				updateItemType,
+				[itemType.STORE, this.state.snackBarItemId],
+				() => console.debug('changeItemType success'),
+				() => console.debug('changeItemType error')
+			)
+		},
+			(error) => console.debug(error),
+			() => {
+				console.debug('transsaction success')
+				this.forceRefresh()
+				this.setState({
+					toggleSnackBar: false
+				})
+			})
 	}
 
 	deleteItem = (id) => {
@@ -258,10 +292,23 @@ class StoreItemsPage extends PureComponent {
 						<ItemListComponent
 							item={item}
 							forceRefreshFunc={this.forceRefresh}
-							showDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
+							toggleDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
+							toggleSnackBarFunc={this.toggleSnackBar}
 						/>
 					)}
 				/>
+				<Snackbar
+					visible={this.state.toggleSnackBar}
+					onDismiss={this.toggleSnackBar}
+					duration={5000}
+					action={{
+						label: 'Undo',
+						onPress: () => {
+							this.undoUpdateItemType()
+						}
+					}}>
+					Switch item back to this store!
+      			</Snackbar>
 
 
 				<Portal>
