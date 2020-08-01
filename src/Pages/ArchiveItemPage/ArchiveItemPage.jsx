@@ -1,10 +1,10 @@
 import React, { PureComponent } from 'react'
 import { View, FlatList } from 'react-native'
 import {
-	Provider, Portal, Button, Dialog, Text, IconButton, Searchbar
+	Provider, Portal, Button, Dialog, Text, IconButton, Searchbar, Snackbar
 } from 'react-native-paper'
 import {
-	db, selectAllItemJoinedStoresByItemType, deleteItem
+	db, selectAllItemJoinedStoresByItemType, deleteItem, updateItemType
 } from '../../Utils/SQLConstants'
 import { styles } from './ArchiveItemPage.styles'
 import { globalStyles } from '../../Utils/Global.styles';
@@ -25,7 +25,9 @@ class ArchiveItemPage extends PureComponent {
 			archivedItems: [],
 			searchResults: [],
 			itemToDelete: null,
-			toggleSearch: false
+			toggleSearch: false,
+			toggleSnackBar: false,
+			snackBarItemId: null
 		}
 	}
 
@@ -80,9 +82,18 @@ class ArchiveItemPage extends PureComponent {
 
 	toggleDeleteItemConfirmation = (id) => {
 		this.setState({
-			itemToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
+			itemToDelete: is ? id : this.state.id,
 			toggleDeleteItemConfirmation: !this.state.toggleDeleteItemConfirmation,
 		})
+	}
+
+	toggleSnackBar = (id) => {
+		console.debug('ID: ' + id)
+		this.setState({
+			snackBarItemId: id ? id : this.state.snackBarItemId,
+			toggleSnackBar: true
+		})
+		console.debug('ID: ' + this.state.snackBarItemId)
 	}
 
 	toggleSearchBar = () => {
@@ -130,6 +141,29 @@ class ArchiveItemPage extends PureComponent {
 		})
 	}
 
+	/**
+	 * it will ever only be the undo back to the archive item page
+	 */
+	undoUpdateItemType = () => {
+		db.transaction(tx => {
+			console.debug('exec changeItemType: ' + this.state.snackBarItemId)
+			tx.executeSql(
+				updateItemType,
+				[itemType.ARCHIVE, this.state.snackBarItemId],
+				() => console.debug('changeItemType success'),
+				() => console.debug('changeItemType error')
+			)
+		},
+			(error) => console.debug(error),
+			() => {
+				console.debug('transaction success')
+				this.forceRefresh()
+				this.setState({
+					toggleSnackBar: false
+				})
+			})
+	}
+
 	forceRefresh = () => {
 		this.setState({
 			isRefreshing: true
@@ -160,9 +194,22 @@ class ArchiveItemPage extends PureComponent {
 							item={item}
 							forceRefreshFunc={this.forceRefresh}
 							showDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
+							toggleSnackBarFunc={this.toggleSnackBar}
 						/>
 					)}
 				/>
+				<Snackbar
+					visible={this.state.toggleSnackBar}
+					onDismiss={this.toggleSnackBar}
+					duration={5000}
+					action={{
+						label: 'Undo',
+						onPress: () => {
+							this.undoUpdateItemType()
+						}
+					}}>
+					Switch item back to this store!
+      			</Snackbar>
 				{/* TODO: add item modal */}
 				<Portal>
 					<Dialog

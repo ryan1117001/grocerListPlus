@@ -86,8 +86,10 @@ class StoreListComponent extends PureComponent {
                 },
                 (error) => { console.debug(error) }
             )
-
-        })
+        },
+            (error) => console.debug(error),
+            () => { this.props.toggleSnackBarFunc(this.state.id) }
+        )
     }
 
     onPressFunction = () => {
@@ -126,6 +128,7 @@ class StoreListComponent extends PureComponent {
                         style={styles.Surface}>
                         <List.Item
                             onPress={this.state.storeType === storeType.INUSE ? this.navigateToStoreItems : null}
+                            onLongPress={() => this.props.toggleExtraStoreOptions()}
                             key={this.state.id}
                             title={<Text style={styles.storeTitle}>{this.state.storeName}</Text>}
                             description={this.setDescription}
@@ -153,6 +156,8 @@ StoreListComponent.propTypes = {
     store: PropTypes.object,
     forceRefreshFunction: PropTypes.func,
     showDeleteStoreConfirmationFunc: PropTypes.func,
+    toggleSnackBarFunc: PropTypes.func,
+    toggleExtraStoreOptions: PropTypes.func,
     navigation: PropTypes.object
 }
 

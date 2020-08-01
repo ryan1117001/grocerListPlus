@@ -1,10 +1,10 @@
 import React, { PureComponent } from 'react';
 import { FlatList, View } from 'react-native';
-import { Provider, Portal, Dialog, Text, Button, IconButton, Searchbar } from 'react-native-paper';
+import { Provider, Portal, Dialog, Text, Button, IconButton, Searchbar, Snackbar } from 'react-native-paper';
 import { styles } from './ArchiveStorePage.styles';
 import { globalStyles } from '../../Utils/Global.styles';
 import {
-	db, selectStoresByStoreType, deleteItemsByStoreId, deleteStore
+	db, selectStoresByStoreType, deleteItemsByStoreId, deleteStore, updateStoreType
 } from '../../Utils/SQLConstants';
 import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
 import { storeType } from '../../Utils/TypeConstants';
@@ -23,7 +23,9 @@ class ArchiveStorePage extends PureComponent {
 			searchResults: [],
 			isRefreshing: false,
 			storeToDelete: null,
-			toggleSearch: false
+			toggleSearch: false,
+			toggleSnackBar: false,
+			snackBarStoreId: null
 		};
 	}
 
@@ -80,7 +82,7 @@ class ArchiveStorePage extends PureComponent {
 
 	toggleDeleteStoreConfirmation = (id) => {
 		this.setState({
-			storeToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
+			storeToDelete: id ? id : this.state.storeToDelete,
 			toggleDeleteStoreConfirmation: !this.state.toggleDeleteStoreConfirmation,
 		})
 	}
@@ -91,11 +93,43 @@ class ArchiveStorePage extends PureComponent {
 		})
 	}
 
+	toggleSnackBar = (id) => {
+		console.debug('ID: ' + id)
+		this.setState({
+			snackBarStoreId: id ? id : this.state.snackBarStoreId,
+			toggleSnackBar: true
+		})
+		console.debug('ID: ' + this.state.snackBarStoreId)
+	}
+
 	searchForStore = () => {
 		const { archivedStores, searchText } = this.state
 		this.setState({
 			searchResults: searchByStoreName(archivedStores, searchText)
 		})
+	}
+
+	/**
+	 * it will ever only be the undo back to the store item page
+	 */
+	undoUpdateStoreType = () => {
+		db.transaction(tx => {
+			console.debug('exec changeStoreType: ' + this.state.snackBarStoreId)
+			tx.executeSql(
+				updateStoreType,
+				[storeType.ARCHIVE, this.state.snackBarStoreId],
+				() => console.debug('changeStoreType success'),
+				() => console.debug('changeStoreType error')
+			)
+		},
+			(error) => console.debug(error),
+			() => {
+				console.debug('transaction success')
+				this.forceRefresh()
+				this.setState({
+					toggleSnackBar: false
+				})
+			})
 	}
 
 	deleteStore = () => {
@@ -163,9 +197,23 @@ class ArchiveStorePage extends PureComponent {
 							forceRefreshFunction={this.forceRefresh}
 							navigation={this.props.navigation}
 							showDeleteStoreConfirmationFunc={this.toggleDeleteStoreConfirmation}
+							toggleSnackBarFunc={this.toggleSnackBar}
 						/>
 					)}
 				/>
+
+				<Snackbar
+					visible={this.state.toggleSnackBar}
+					onDismiss={this.toggleSnackBar}
+					duration={5000}
+					action={{
+						label: 'Undo',
+						onPress: () => {
+							this.undoUpdateStoreType()
+						}
+					}}>
+					Switch this store back!
+      			</Snackbar>
 				{/* Confirm Deletion */}
 				<Portal>
 					<Dialog

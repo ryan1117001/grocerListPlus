@@ -1,11 +1,11 @@
 import React, { PureComponent } from 'react'
 import { View, TextInput, FlatList } from 'react-native';
 import { styles } from './InventoryItemPage.styles'
-import { Button, Provider, Portal, Dialog, Text, IconButton, Searchbar } from 'react-native-paper'
+import { Button, Provider, Portal, Dialog, Text, IconButton, Searchbar, Snackbar } from 'react-native-paper'
 import { Picker } from '@react-native-community/picker'
 import {
 	db, selectAllItemJoinedStoresByItemType, insertInventoryItem,
-	deleteItem, selectAllStores
+	deleteItem, selectAllStores, updateItemType
 } from '../../Utils/SQLConstants';
 import { itemType } from '../../Utils/TypeConstants'
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
@@ -29,7 +29,9 @@ class InventoryItemPage extends PureComponent {
 			selectedStoreId: 0,
 			textInput: '',
 			itemToDelete: null,
-			toggleSearch: false
+			toggleSearch: false,
+			toggleSnackBar: false,
+			snackBarItemId: null
 		};
 	}
 
@@ -151,6 +153,29 @@ class InventoryItemPage extends PureComponent {
 		}
 	}
 
+	/**
+	 * it will ever only be the undo back to the inventory item page
+	 */
+	undoUpdateItemType = () => {
+		db.transaction(tx => {
+			console.debug('exec changeItemType: ' + this.state.snackBarItemId)
+			tx.executeSql(
+				updateItemType,
+				[itemType.INVENTORY, this.state.snackBarItemId],
+				() => console.debug('changeItemType success'),
+				() => console.debug('changeItemType error')
+			)
+		},
+			(error) => console.debug(error),
+			() => {
+				console.debug('transaction success')
+				this.forceRefresh()
+				this.setState({
+					toggleSnackBar: false
+				})
+			})
+	}
+
 	toggleShowAddAllItemModal = () => {
 		this.setState({
 			toggleShowAddAllItemModal: !this.state.toggleShowAddAllItemModal
@@ -159,20 +184,18 @@ class InventoryItemPage extends PureComponent {
 
 	toggleDeleteItemConfirmation = (id) => {
 		this.setState({
-			itemToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
+			itemToDelete: id ? id : this.state.itemToDelete,
 			toggleDeleteItemConfirmation: !this.state.toggleDeleteItemConfirmation,
 		})
 	}
 
-	forceRefresh = () => {
+	toggleSnackBar = (id) => {
+		console.debug('ID: ' + id)
 		this.setState({
-			isRefreshing: true
+			snackBarItemId: id ? id : this.state.snackBarItemId,
+			toggleSnackBar: true
 		})
-		this.queryAllInventoriedItems()
-		this.queryAllStores()
-		this.setState({
-			isRefreshing: false,
-		})
+		console.debug('ID: ' + this.state.snackBarItemId)
 	}
 
 	toggleSearchBar = () => {
@@ -185,6 +208,17 @@ class InventoryItemPage extends PureComponent {
 		const { inventoryItemData, searchText } = this.state
 		this.setState({
 			searchResults: searchByItemName(inventoryItemData, searchText)
+		})
+	}
+
+	forceRefresh = () => {
+		this.setState({
+			isRefreshing: true
+		})
+		this.queryAllInventoriedItems()
+		this.queryAllStores()
+		this.setState({
+			isRefreshing: false,
 		})
 	}
 
@@ -222,9 +256,22 @@ class InventoryItemPage extends PureComponent {
 							item={item}
 							forceRefreshFunc={this.forceRefresh}
 							showDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
+							toggleSnackBarFunc={this.toggleSnackBar}
 						/>
 					)}
 				/>
+				<Snackbar
+					visible={this.state.toggleSnackBar}
+					onDismiss={this.toggleSnackBar}
+					duration={5000}
+					action={{
+						label: 'Undo',
+						onPress: () => {
+							this.undoUpdateItemType()
+						}
+					}}>
+					Switch item back to this store!
+      			</Snackbar>
 				<Portal>
 					<Dialog
 						visible={this.state.toggleShowAddAllItemModal}

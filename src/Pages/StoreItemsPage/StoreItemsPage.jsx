@@ -81,8 +81,7 @@ class StoreItemsPage extends PureComponent {
 	componentDidCatch(error, info) { }
 
 	componentDidUpdate = () => {
-		console.debug('StoreItemsPage did update')
-		console.debug(this.state.storeName)
+		// console.debug('StoreItemsPage did update')
 	}
 
 	componentWillUnmount = () => {
@@ -109,7 +108,7 @@ class StoreItemsPage extends PureComponent {
 
 	toggleDeleteItemConfirmation = (id) => {
 		this.setState({
-			itemToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? this.state.itemToDelete : id,
+			itemToDelete: id ? id : this.state.itemToDelete,
 			toggleDeleteItemConfirmation: !this.state.toggleDeleteItemConfirmation,
 		})
 	}
@@ -123,7 +122,7 @@ class StoreItemsPage extends PureComponent {
 	toggleSnackBar = (id) => {
 		console.debug('ID: ' + id)
 		this.setState({
-			snackBarItemId: id == null || id == undefined ? this.state.snackBarItemId : id,
+			snackBarItemId: id ? id : this.state.snackBarItemId,
 			toggleSnackBar: true
 		})
 		console.debug('ID: ' + this.state.snackBarItemId)
@@ -309,7 +308,6 @@ class StoreItemsPage extends PureComponent {
 					}}>
 					Switch item back to this store!
       			</Snackbar>
-
 
 				<Portal>
 					<Modal visible={this.state.toggleCalendarModal} onDismiss={this.toggleCalendarModal}>

@@ -1,9 +1,9 @@
 import React, { PureComponent } from 'react';
 import { View, TextInput, FlatList } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { Button, Dialog, Portal, Provider, IconButton, Text, Searchbar } from 'react-native-paper';
+import { Button, Dialog, Portal, Provider, IconButton, Text, Searchbar, Snackbar } from 'react-native-paper';
 import {
-	db, insertStore, selectStoresByStoreType, deleteStore, deleteItemsByStoreId
+	db, insertStore, selectStoresByStoreType, deleteStore, deleteItemsByStoreId, updateStoreType
 } from '../../Utils/SQLConstants';
 import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
 import moment from 'moment'
@@ -19,12 +19,15 @@ class StoresPage extends PureComponent {
 		this.state = {
 			toggleShowAddStoreModal: false,
 			toggleDeleteStoreConfirmation: false,
+			toggleExtraStoreOptions: false,
 			storeNameText: '',
 			stores: [],
 			searchResults: [],
 			isRefreshing: false,
 			storeToDelete: null,
-			toggleSearch: false
+			toggleSearch: false,
+			toggleSnackBar: false,
+			snackBarStoreId: null,
 		};
 	}
 
@@ -108,6 +111,44 @@ class StoresPage extends PureComponent {
 		})
 	}
 
+	toggleSnackBar = (id) => {
+		console.debug('ID: ' + id)
+		this.setState({
+			snackBarStoreId: id ? id : this.state.snackBarStoreId,
+			toggleSnackBar: true
+		})
+		console.debug('ID: ' + this.state.snackBarStoreId)
+	}
+
+	toggleExtraStoreOptions = () => {
+		this.setState({
+			toggleExtraStoreOptions: !this.state.toggleExtraStoreOptions
+		})
+	}
+
+	/**
+	 * it will ever only be the undo back to the store item page
+	 */
+	undoUpdateStoreType = () => {
+		db.transaction(tx => {
+			console.debug('exec changeStoreType: ' + this.state.snackBarStoreId)
+			tx.executeSql(
+				updateStoreType,
+				[storeType.INUSE, this.state.snackBarStoreId],
+				() => console.debug('changeStoreType success'),
+				() => console.debug('changeStoreType error')
+			)
+		},
+			(error) => console.debug(error),
+			() => {
+				console.debug('transaction success')
+				this.forceRefresh()
+				this.setState({
+					toggleSnackBar: false
+				})
+			})
+	}
+
 	searchForStore = () => {
 		const { stores, searchText } = this.state
 		this.setState({
@@ -177,9 +218,23 @@ class StoresPage extends PureComponent {
 							forceRefreshFunction={this.forceRefresh}
 							showDeleteStoreConfirmationFunc={this.toggleDeleteStoreConfirmation}
 							navigation={this.props.navigation}
+							toggleSnackBarFunc={this.toggleSnackBar}
+							toggleExtraStoreOptions={this.toggleExtraStoreOptions}
 						/>
 					)}
 				/>
+				<Snackbar
+					visible={this.state.toggleSnackBar}
+					onDismiss={this.toggleSnackBar}
+					duration={5000}
+					action={{
+						label: 'Undo',
+						onPress: () => {
+							this.undoUpdateStoreType()
+						}
+					}}>
+					Switch this store back!
+      			</Snackbar>
 
 				{/* add new store */}
 				<Portal>
@@ -213,6 +268,22 @@ class StoresPage extends PureComponent {
 						<Dialog.Actions>
 							<Button onPress={this.toggleDeleteStoreConfirmation}>Cancel</Button>
 							<Button onPress={this.deleteStore}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+
+				<Portal>
+					<Dialog
+						visible={this.state.toggleExtraStoreOptions}
+						onDismiss={this.toggleExtraStoreOptions}>
+						<Dialog.Title>Extra Options</Dialog.Title>
+						<Dialog.Content>
+							<Text>
+								Extra Options
+							</Text>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.toggleExtraStoreOptions}>Cancel</Button>
 						</Dialog.Actions>
 					</Dialog>
 				</Portal>
