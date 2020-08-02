@@ -108,23 +108,35 @@ class ItemListComponent extends PureComponent {
 		}
 	}
 
+	setLeftButton = () => {
+		switch (this.state.itemType) {
+			case itemType.ARCHIVE:
+				return <IconButton
+					icon='arrow-left-bold-box-outline'
+					onPress={this.updateItemType}
+				/>
+			default:
+				return <IconButton
+					icon='arrow-right-bold-box-outline'
+					onPress={this.updateItemType}
+				/>
+		}
+	}
+
 	render() {
 		return (
 			<Provider>
-				<View style={styles.ArchiveItemListComponentWrapper}>
+				<View style={styles.ItemListComponentWrapper}>
 					<Surface
 						key={this.state.id}
 						style={styles.Surface}>
 						<List.Item
 							title={<Text style={styles.itemTitle}>{this.state.itemName}</Text>}
+							onPress={() => { }}
+							onLongPress={() => { this.props.toggleExtraOptionsFunc(this.state.id) }}
 							description={this.setDescription}
 							key={this.state.id}
-							left={() =>
-								<IconButton
-									icon={this.state.itemType === itemType.ARCHIVE ? 'arrow-left-bold-box-outline' : 'arrow-right-bold-box-outline'}
-									onPress={this.updateItemType}
-								/>
-							}
+							left={this.setLeftButton}
 							right={() =>
 								<IconButton
 									icon='trash-can-outline'
@@ -146,11 +158,13 @@ ItemListComponent.propTypes = {
 	dateToGo: PropTypes.string,
 	toggleDeleteItemConfirmationFunc: PropTypes.func,
 	forceRefreshFunc: PropTypes.func,
-	toggleSnackBarFunc: PropTypes.func
+	toggleSnackBarFunc: PropTypes.func,
+	toggleExtraOptionsFunc: PropTypes.func
 };
 
 ItemListComponent.defaultProps = {
 	// bla: 'test',
+	toggleExtraOptionsFunc: () => { }
 };
 
 export default ItemListComponent;

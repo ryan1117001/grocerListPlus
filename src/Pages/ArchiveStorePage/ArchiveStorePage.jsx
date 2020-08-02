@@ -1,10 +1,10 @@
 import React, { PureComponent } from 'react';
-import { FlatList, View } from 'react-native';
-import { Provider, Portal, Dialog, Text, Button, IconButton, Searchbar, Snackbar } from 'react-native-paper';
+import { FlatList, View, TextInput } from 'react-native';
+import { Provider, Portal, Dialog, Text, Button, IconButton, Searchbar, Snackbar, List } from 'react-native-paper';
 import { styles } from './ArchiveStorePage.styles';
 import { globalStyles } from '../../Utils/Global.styles';
 import {
-	db, selectStoresByStoreType, deleteItemsByStoreId, deleteStore, updateStoreType
+	db, selectStoresByStoreType, deleteItemsByStoreId, deleteStore, updateStoreType, updateStoreName
 } from '../../Utils/SQLConstants';
 import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
 import { storeType } from '../../Utils/TypeConstants';
@@ -25,7 +25,11 @@ class ArchiveStorePage extends PureComponent {
 			storeToDelete: null,
 			toggleSearch: false,
 			toggleSnackBar: false,
-			snackBarStoreId: null
+			toggleExtraStoreOptions: false,
+			toggleEditStoreModal: false,
+			snackBarStoreId: null,
+			storeIDToEdit: null,
+			storeNameText: '',
 		};
 	}
 
@@ -102,6 +106,19 @@ class ArchiveStorePage extends PureComponent {
 		console.debug('ID: ' + this.state.snackBarStoreId)
 	}
 
+	toggleExtraStoreOptions = (id) => {
+		this.setState({
+			storeIDToEdit: id ? id : this.state.storeIDToEdit,
+			toggleExtraStoreOptions: !this.state.toggleExtraStoreOptions
+		})
+	}
+
+	toggleEditStoreModal = () => {
+		this.setState({
+			toggleEditStoreModal: !this.state.toggleEditStoreModal
+		})
+	}
+
 	searchForStore = () => {
 		const { archivedStores, searchText } = this.state
 		this.setState({
@@ -175,6 +192,21 @@ class ArchiveStorePage extends PureComponent {
 			)
 		})
 	}
+	editStoreName = () => {
+		console.debug('exec editStore')
+		db.transaction(tx => {
+			tx.executeSql(
+				updateStoreName,
+				[this.state.storeNameText, this.state.storeIDToEdit],
+				() => {
+					console.debug('success')
+					this.toggleEditStoreModal()
+					this.forceRefresh()
+				},
+				() => console.debug('error')
+			)
+		})
+	}
 
 	render() {
 		return (
@@ -198,6 +230,7 @@ class ArchiveStorePage extends PureComponent {
 							navigation={this.props.navigation}
 							showDeleteStoreConfirmationFunc={this.toggleDeleteStoreConfirmation}
 							toggleSnackBarFunc={this.toggleSnackBar}
+							toggleExtraStoreOptionsFunc={this.toggleExtraStoreOptions}
 						/>
 					)}
 				/>
@@ -229,6 +262,41 @@ class ArchiveStorePage extends PureComponent {
 							<Button onPress={this.toggleDeleteStoreConfirmation}>Cancel</Button>
 							<Button onPress={this.deleteStore}>Done</Button>
 						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+				{/* edit store name */}
+				<Portal>
+					<Dialog
+						visible={this.state.toggleEditStoreModal}
+						onDismiss={this.toggleEditStoreModal}>
+						<Dialog.Title>Edit Store Name</Dialog.Title>
+						<Dialog.Content>
+							<TextInput
+								placeholder={"Store Name"}
+								onChangeText={text => this.setState({ storeNameText: text })}
+							/>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.toggleEditStoreModal}>Cancel</Button>
+							<Button onPress={this.editStoreName}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+
+				<Portal>
+					<Dialog
+						visible={this.state.toggleExtraStoreOptions}
+						onDismiss={this.toggleExtraStoreOptions}>
+						<Dialog.Title>Extra Options</Dialog.Title>
+						<Dialog.Content>
+							<List.Item
+								title={'Edit Store Name'}
+								onPress={() => {
+									this.toggleExtraStoreOptions()
+									this.toggleEditStoreModal()
+								}}
+							/>
+						</Dialog.Content>
 					</Dialog>
 				</Portal>
 			</Provider >

@@ -1,9 +1,10 @@
 import React, { PureComponent } from 'react';
 import { View, TextInput, FlatList } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { Button, Dialog, Portal, Provider, IconButton, Text, Searchbar, Snackbar } from 'react-native-paper';
+import { Button, Dialog, Portal, Provider, IconButton, Text, Searchbar, Snackbar, List, Divider } from 'react-native-paper';
 import {
-	db, insertStore, selectStoresByStoreType, deleteStore, deleteItemsByStoreId, updateStoreType
+	db, insertStore, selectStoresByStoreType, deleteStore, deleteItemsByStoreId, updateStoreType,
+	updateStoreName
 } from '../../Utils/SQLConstants';
 import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
 import moment from 'moment'
@@ -20,11 +21,13 @@ class StoresPage extends PureComponent {
 			toggleShowAddStoreModal: false,
 			toggleDeleteStoreConfirmation: false,
 			toggleExtraStoreOptions: false,
+			toggleEditStoreModal: false,
 			storeNameText: '',
 			stores: [],
 			searchResults: [],
 			isRefreshing: false,
 			storeToDelete: null,
+			storeIDToEdit: null,
 			toggleSearch: false,
 			toggleSnackBar: false,
 			snackBarStoreId: null,
@@ -120,9 +123,16 @@ class StoresPage extends PureComponent {
 		console.debug('ID: ' + this.state.snackBarStoreId)
 	}
 
-	toggleExtraStoreOptions = () => {
+	toggleExtraStoreOptions = (id) => {
 		this.setState({
+			storeIDToEdit: id ? id : this.state.storeIDToEdit,
 			toggleExtraStoreOptions: !this.state.toggleExtraStoreOptions
+		})
+	}
+
+	toggleEditStoreModal = () => {
+		this.setState({
+			toggleEditStoreModal: !this.state.toggleEditStoreModal
 		})
 	}
 
@@ -187,9 +197,26 @@ class StoresPage extends PureComponent {
 		})
 	}
 
+	editStoreName = () => {
+		console.debug('exec editStore')
+		db.transaction(tx => {
+			tx.executeSql(
+				updateStoreName,
+				[this.state.storeNameText, this.state.storeIDToEdit],
+				() => {
+					console.debug('success')
+					this.toggleEditStoreModal()
+					this.forceRefresh()
+				},
+				() => console.debug('error')
+			)
+		})
+	}
+
 	forceRefresh = () => {
 		this.setState({
-			isRefreshing: true
+			isRefreshing: true,
+			storeNameText: ''
 		})
 		this.queryStores()
 		this.setState({
@@ -219,7 +246,7 @@ class StoresPage extends PureComponent {
 							showDeleteStoreConfirmationFunc={this.toggleDeleteStoreConfirmation}
 							navigation={this.props.navigation}
 							toggleSnackBarFunc={this.toggleSnackBar}
-							toggleExtraStoreOptions={this.toggleExtraStoreOptions}
+							toggleExtraStoreOptionsFunc={this.toggleExtraStoreOptions}
 						/>
 					)}
 				/>
@@ -272,19 +299,39 @@ class StoresPage extends PureComponent {
 					</Dialog>
 				</Portal>
 
+				{/* edit store name */}
+				<Portal>
+					<Dialog
+						visible={this.state.toggleEditStoreModal}
+						onDismiss={this.toggleEditStoreModal}>
+						<Dialog.Title>Edit Store Name</Dialog.Title>
+						<Dialog.Content>
+							<TextInput
+								placeholder={"Store Name"}
+								onChangeText={text => this.setState({ storeNameText: text })}
+							/>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.toggleEditStoreModal}>Cancel</Button>
+							<Button onPress={this.editStoreName}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+
 				<Portal>
 					<Dialog
 						visible={this.state.toggleExtraStoreOptions}
 						onDismiss={this.toggleExtraStoreOptions}>
 						<Dialog.Title>Extra Options</Dialog.Title>
 						<Dialog.Content>
-							<Text>
-								Extra Options
-							</Text>
+							<List.Item
+								title={'Edit Store Name'}
+								onPress={() => {
+									this.toggleExtraStoreOptions()
+									this.toggleEditStoreModal()
+								}}
+							/>
 						</Dialog.Content>
-						<Dialog.Actions>
-							<Button onPress={this.toggleExtraStoreOptions}>Cancel</Button>
-						</Dialog.Actions>
 					</Dialog>
 				</Portal>
 			</Provider >

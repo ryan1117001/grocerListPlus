@@ -3,13 +3,13 @@ import PropTypes from 'prop-types';
 import { styles } from './StoreItemsPage.styles'
 import { View, TextInput, FlatList } from 'react-native';
 import {
-	Modal, Provider, Portal, Snackbar,
+	Modal, Provider, Portal, Snackbar, List, Divider,
 	Button, Dialog, IconButton, Text, Searchbar
 } from 'react-native-paper'
 import { Calendar } from 'react-native-calendars'
 import {
 	db, deleteItem, insertStoreItem, updateItemType,
-	updateDateToGo, selectItemsByItemTypeAndStoreId, updateStoreName
+	updateDateToGo, selectItemsByItemTypeAndStoreId
 } from '../../Utils/SQLConstants';
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 import { itemType } from '../../Utils/TypeConstants'
@@ -29,7 +29,6 @@ class StoreItemsPage extends PureComponent {
 			storeName: props.route.params.storeName,
 			storeId: props.route.params.storeId,
 			itemNameText: '',
-			storeNameText: '',
 			isRefreshing: false,
 			storeItemData: [],
 			searchResults: [],
@@ -56,11 +55,6 @@ class StoreItemsPage extends PureComponent {
 						icon='magnify'
 						color='#FFF'
 						onPress={this.toggleSearchBar}
-					/>
-					<IconButton
-						icon='pencil-outline'
-						color='#FFF'
-						onPress={this.toggleEditStoreModal}
 					/>
 					<IconButton
 						icon='dots-vertical'
@@ -100,12 +94,6 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
-	toggleEditStoreModal = () => {
-		this.setState({
-			toggleEditStoreModal: !this.state.toggleEditStoreModal
-		})
-	}
-
 	toggleDeleteItemConfirmation = (id) => {
 		this.setState({
 			itemToDelete: id ? id : this.state.itemToDelete,
@@ -126,6 +114,13 @@ class StoreItemsPage extends PureComponent {
 			toggleSnackBar: true
 		})
 		console.debug('ID: ' + this.state.snackBarItemId)
+	}
+
+	toggleExtraOptions = (id) => {
+		this.setState({
+			extraOptionItemId: id ? id : this.state.extraOptionItemId,
+			toggleExtraOptions: !this.state.toggleExtraOptions
+		})
 	}
 
 	searchForItem = () => {
@@ -196,6 +191,25 @@ class StoreItemsPage extends PureComponent {
 			})
 	}
 
+	updateItemType = (args) => {
+		db.transaction(tx => {
+			console.debug('exec changeItemType: ' + this.state.extraOptionItemId)
+			tx.executeSql(
+				updateItemType,
+				args,
+				() => console.debug('changeItemType success'),
+				() => console.debug('changeItemType error')
+			)
+		},
+			(error) => console.debug(error),
+			() => {
+				console.debug('transaction success')
+				this.forceRefresh()
+				this.toggleExtraOptions()
+				this.toggleSnackBar(this.state.extraOptionItemId)
+			})
+	}
+
 	deleteItem = (id) => {
 		console.debug('delete item')
 		db.transaction(tx => {
@@ -238,26 +252,6 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
-	editStoreName = () => {
-		console.debug('exec editStore')
-		db.transaction(tx => {
-			tx.executeSql(
-				updateStoreName,
-				[this.state.storeNameText, this.state.storeId],
-				() => {
-					console.debug('success')
-					this.toggleEditStoreModal()
-					this.setState({
-						storeName: this.state.storeNameText,
-						storeNameText: '',
-					})
-					this.setHeader(this.props.navigation)
-				},
-				() => console.debug('error')
-			)
-		})
-	}
-
 	render() {
 		return (
 			<Provider>
@@ -293,6 +287,7 @@ class StoreItemsPage extends PureComponent {
 							forceRefreshFunc={this.forceRefresh}
 							toggleDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
 							toggleSnackBarFunc={this.toggleSnackBar}
+							toggleExtraOptionsFunc={this.toggleExtraOptions}
 						/>
 					)}
 				/>
@@ -354,25 +349,7 @@ class StoreItemsPage extends PureComponent {
 						</Dialog.Actions>
 					</Dialog>
 				</Portal>
-				{/* edit store name */}
-				<Portal>
-					<Dialog
-						visible={this.state.toggleEditStoreModal}
-						onDismiss={this.toggleEditStoreModal}>
-						<Dialog.Title>Edit Store Name</Dialog.Title>
-						<Dialog.Content>
-							<TextInput
-								placeholder={"Store Name"}
-								onChangeText={text => this.setState({ storeNameText: text })}
-							/>
-						</Dialog.Content>
-						<Dialog.Actions>
-							<Button onPress={this.toggleEditStoreModal}>Cancel</Button>
-							<Button onPress={this.editStoreName}>Done</Button>
-						</Dialog.Actions>
-					</Dialog>
-
-				</Portal>
+				
 				{/* delete item confirmation */}
 				<Portal>
 					<Dialog
@@ -388,6 +365,29 @@ class StoreItemsPage extends PureComponent {
 							<Button onPress={this.toggleDeleteItemConfirmation}>Cancel</Button>
 							<Button onPress={this.deleteItem.bind(this, this.state.itemToDelete)}>Done</Button>
 						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+
+				<Portal>
+					<Dialog
+						visible={this.state.toggleExtraOptions}
+						onDismiss={this.toggleExtraOptions}>
+						<Dialog.Title>Extra Options</Dialog.Title>
+						<Dialog.Content>
+							<List.Item
+								title={'Move To Inventory'}
+								onPress={() => {
+									this.updateItemType([itemType.INVENTORY, this.state.extraOptionItemId])
+								}}
+							/>
+							<Divider />
+							<List.Item
+								title={'Move to Archive'}
+								onPress={() => {
+									this.updateItemType([itemType.ARCHIVE, this.state.extraOptionItemId])
+								}}
+							/>
+						</Dialog.Content>
 					</Dialog>
 				</Portal>
 			</Provider>

@@ -127,8 +127,8 @@ class StoreListComponent extends PureComponent {
                         key={this.state.id}
                         style={styles.Surface}>
                         <List.Item
-                            onPress={this.state.storeType === storeType.INUSE ? this.navigateToStoreItems : null}
-                            onLongPress={() => this.props.toggleExtraStoreOptions()}
+                            onPress={this.state.storeType === storeType.INUSE ? this.navigateToStoreItems : () => { }}
+                            onLongPress={() => this.props.toggleExtraStoreOptionsFunc(this.state.id)}
                             key={this.state.id}
                             title={<Text style={styles.storeTitle}>{this.state.storeName}</Text>}
                             description={this.setDescription}
@@ -157,13 +157,14 @@ StoreListComponent.propTypes = {
     forceRefreshFunction: PropTypes.func,
     showDeleteStoreConfirmationFunc: PropTypes.func,
     toggleSnackBarFunc: PropTypes.func,
-    toggleExtraStoreOptions: PropTypes.func,
+    toggleExtraStoreOptionsFunc: PropTypes.func,
     navigation: PropTypes.object
 }
 
 StoreListComponent.defaultProps = {
     store: null,
-    forceRefreshFunction: null,
+    forceRefreshFunction: () => { },
+    toggleExtraStoreOptionsFunc: () => { },
     navigation: null
 }
 

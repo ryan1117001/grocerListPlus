@@ -1,11 +1,11 @@
 import React, { PureComponent } from 'react'
 import { View, TextInput, FlatList } from 'react-native';
 import { styles } from './InventoryItemPage.styles'
-import { Button, Provider, Portal, Dialog, Text, IconButton, Searchbar, Snackbar } from 'react-native-paper'
+import { Button, Provider, Portal, Dialog, Text, IconButton, Searchbar, Snackbar, List, Divider } from 'react-native-paper'
 import { Picker } from '@react-native-community/picker'
 import {
 	db, selectAllItemJoinedStoresByItemType, insertInventoryItem,
-	deleteItem, selectAllStores, updateItemType
+	deleteItem, selectAllStores, updateItemType,
 } from '../../Utils/SQLConstants';
 import { itemType } from '../../Utils/TypeConstants'
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
@@ -31,7 +31,9 @@ class InventoryItemPage extends PureComponent {
 			itemToDelete: null,
 			toggleSearch: false,
 			toggleSnackBar: false,
-			snackBarItemId: null
+			toggleExtraOptions: false,
+			snackBarItemId: null,
+			extraOptionItemId: null
 		};
 	}
 
@@ -176,6 +178,26 @@ class InventoryItemPage extends PureComponent {
 			})
 	}
 
+	updateItemType = (args) => {
+		db.transaction(tx => {
+			console.debug('exec changeItemType: ' + this.state.extraOptionItemId)
+			tx.executeSql(
+				updateItemType,
+				args,
+				() => console.debug('changeItemType success'),
+				() => console.debug('changeItemType error')
+			)
+		},
+			(error) => console.debug(error),
+			() => {
+				console.debug('transaction success')
+				this.forceRefresh()
+				this.toggleExtraOptions()
+				this.toggleSnackBar(this.state.extraOptionItemId)
+
+			})
+	}
+
 	toggleShowAddAllItemModal = () => {
 		this.setState({
 			toggleShowAddAllItemModal: !this.state.toggleShowAddAllItemModal
@@ -201,6 +223,13 @@ class InventoryItemPage extends PureComponent {
 	toggleSearchBar = () => {
 		this.setState({
 			toggleSearch: !this.state.toggleSearch
+		})
+	}
+
+	toggleExtraOptions = (id) => {
+		this.setState({
+			extraOptionItemId: id ? id : this.state.extraOptionItemId,
+			toggleExtraOptions: !this.state.toggleExtraOptions
 		})
 	}
 
@@ -257,6 +286,7 @@ class InventoryItemPage extends PureComponent {
 							forceRefreshFunc={this.forceRefresh}
 							showDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
 							toggleSnackBarFunc={this.toggleSnackBar}
+							toggleExtraOptionsFunc={this.toggleExtraOptions}
 						/>
 					)}
 				/>
@@ -322,6 +352,29 @@ class InventoryItemPage extends PureComponent {
 							<Button onPress={this.toggleDeleteItemConfirmation}>Cancel</Button>
 							<Button onPress={this.deleteItem}>Done</Button>
 						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+
+				<Portal>
+					<Dialog
+						visible={this.state.toggleExtraOptions}
+						onDismiss={this.toggleExtraOptions}>
+						<Dialog.Title>Extra Options</Dialog.Title>
+						<Dialog.Content>
+							<List.Item
+								title={'Move To Store'}
+								onPress={() => {
+									this.updateItemType([itemType.STORE, this.state.extraOptionItemId])
+								}}
+							/>
+							<Divider />
+							<List.Item
+								title={'Move to Archive'}
+								onPress={() => {
+									this.updateItemType([itemType.ARCHIVE, this.state.extraOptionItemId])
+								}}
+							/>
+						</Dialog.Content>
 					</Dialog>
 				</Portal>
 			</Provider>

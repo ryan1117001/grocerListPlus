@@ -1,7 +1,8 @@
 import React, { PureComponent } from 'react'
 import { View, FlatList } from 'react-native'
 import {
-	Provider, Portal, Button, Dialog, Text, IconButton, Searchbar, Snackbar
+	Provider, Portal, Button, Dialog, Text, IconButton, Searchbar, Snackbar,
+	List, Divider
 } from 'react-native-paper'
 import {
 	db, selectAllItemJoinedStoresByItemType, deleteItem, updateItemType
@@ -102,6 +103,13 @@ class ArchiveItemPage extends PureComponent {
 		})
 	}
 
+	toggleExtraOptions = (id) => {
+		this.setState({
+			extraOptionItemId: id ? id : this.state.extraOptionItemId,
+			toggleExtraOptions: !this.state.toggleExtraOptions
+		})
+	}
+
 	searchForItem = () => {
 		const { archivedItems, searchText } = this.state
 		this.setState({
@@ -164,6 +172,26 @@ class ArchiveItemPage extends PureComponent {
 			})
 	}
 
+	updateItemType = (args) => {
+		db.transaction(tx => {
+			console.debug('exec changeItemType: ' + this.state.extraOptionItemId)
+			tx.executeSql(
+				updateItemType,
+				args,
+				() => console.debug('changeItemType success'),
+				() => console.debug('changeItemType error')
+			)
+		},
+			(error) => console.debug(error),
+			() => {
+				console.debug('transaction success')
+				this.forceRefresh()
+				this.toggleExtraOptions()
+				this.toggleSnackBar(this.state.extraOptionItemId)
+
+			})
+	}
+
 	forceRefresh = () => {
 		this.setState({
 			isRefreshing: true
@@ -195,6 +223,7 @@ class ArchiveItemPage extends PureComponent {
 							forceRefreshFunc={this.forceRefresh}
 							showDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
 							toggleSnackBarFunc={this.toggleSnackBar}
+							toggleExtraOptionsFunc={this.toggleExtraOptions}
 						/>
 					)}
 				/>
@@ -210,7 +239,6 @@ class ArchiveItemPage extends PureComponent {
 					}}>
 					Switch item back to this store!
       			</Snackbar>
-				{/* TODO: add item modal */}
 				<Portal>
 					<Dialog
 						visible={this.state.toggleDeleteItemConfirmation}
@@ -225,6 +253,29 @@ class ArchiveItemPage extends PureComponent {
 							<Button onPress={this.toggleDeleteItemConfirmation}>Cancel</Button>
 							<Button onPress={this.deleteItem}>Done</Button>
 						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+
+				<Portal>
+					<Dialog
+						visible={this.state.toggleExtraOptions}
+						onDismiss={this.toggleExtraOptions}>
+						<Dialog.Title>Extra Options</Dialog.Title>
+						<Dialog.Content>
+							<List.Item
+								title={'Move To Store'}
+								onPress={() => {
+									this.updateItemType([itemType.STORE, this.state.extraOptionItemId])
+								}}
+							/>
+							<Divider />
+							<List.Item
+								title={'Move to Inventory'}
+								onPress={() => {
+									this.updateItemType([itemType.INVENTORY, this.state.extraOptionItemId])
+								}}
+							/>
+						</Dialog.Content>
 					</Dialog>
 				</Portal>
 			</Provider>

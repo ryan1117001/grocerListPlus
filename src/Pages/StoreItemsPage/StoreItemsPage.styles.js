@@ -8,7 +8,7 @@ export const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     CalendarWrapper: {
-        height: 330
+        marginHorizontal: 20
     },
     TitleRowWrapper: {
         flexDirection: 'row',
