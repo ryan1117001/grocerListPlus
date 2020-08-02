@@ -4,13 +4,17 @@ export const styles = StyleSheet.create({
     StoreItemsPageWrapper: {
         flex: 1,
     },
+    HeaderWrapper: {
+        flexDirection: 'row'
+    },
     CalendarWrapper: {
-        height: 330
+        marginHorizontal: 20
     },
     TitleRowWrapper: {
         flexDirection: 'row',
         justifyContent: 'space-around',
-        alignItems: 'center'
+        alignItems: 'center',
+        marginVertical: 2
     },
     UserInputWrapper: {
         flex: 1,

@@ -8,6 +8,9 @@ export const styles = StyleSheet.create({
     marginVertical: 1,
     elevation: 4
   },
+  HeaderWrapper: {
+    flexDirection: 'row'
+  },
   Fab: {
     position: 'absolute',
     right: 0,
