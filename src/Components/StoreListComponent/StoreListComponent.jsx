@@ -14,14 +14,15 @@ class StoreListComponent extends PureComponent {
     constructor(props) {
         super(props)
 
-        console.debug(props)
-
+        // console.debug(props)
+        
+        const { store } = props
         this.state = {
-            id: props.store.id,
-            storeName: props.store.storeName,
-            storeType: props.store.storeType,
-            dateToGo: moment(props.store.dateToGo).locale('en-US').format('l'),
-            archiveDate: moment(props.store.archiveDate).locale('en-US').format('l'),
+            id: store.id,
+            storeName: store.storeName,
+            storeType: store.storeType,
+            dateToGo: moment(store.dateToGo).locale('en-US').format('l'),
+            archiveDate: moment(store.archiveDate).locale('en-US').format('l'),
             storeNameText: '',
         }
     }
@@ -58,9 +59,6 @@ class StoreListComponent extends PureComponent {
             if (this.state.storeType === storeType.INUSE) {
                 var date = moment(new Date()).format('YYYY-MM-DD')
                 tx.executeSql(updateStoreArchiveDate, [date, this.state.id])
-            }
-            else if (this.state.storeType === storeType.ARCHIVE) {
-                tx.executeSql(updateStoreArchiveDate, [undefined, this.state.id])
             }
             console.debug('exec updateItemsOnUpdateStoreType')
             tx.executeSql(updateItemsOnUpdateStoreType, args,

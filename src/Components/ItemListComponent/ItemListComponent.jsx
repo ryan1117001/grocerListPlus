@@ -11,7 +11,7 @@ class ItemListComponent extends PureComponent {
 	constructor(props) {
 		super(props);
 
-		console.debug(props)
+		// console.debug(props)
 
 		this.state = {
 			itemName: props.item.itemName,

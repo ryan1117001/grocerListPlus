@@ -10,7 +10,6 @@ import StoreItemsPage from './src/Pages/StoreItemsPage/StoreItemsPage'
 import InventoryItemPage from './src/Pages/InventoryItemPage/InventoryItemPage';
 import SettingsPage from './src/Pages/SettingsPage/SettingsPage';
 import ArchiveItemPage from './src/Pages/ArchiveItemPage/ArchiveItemPage';
-import ArchiveStorePage from './src/Pages/ArchiveStorePage/ArchiveStorePage';
 import {
 	db, enableFK, createItemsTable, createStoresTable
 } from './src/Utils/SQLConstants';
@@ -29,7 +28,7 @@ function TopTabNavigator({ navigation: stackNavigation }) {
 		>
 			<TopTabNav.Screen
 				name='ArchiveStores'
-				component={ArchiveStorePage}
+				component={StoresPage}
 				initialParams={{
 					stackNavigation: stackNavigation
 				}}

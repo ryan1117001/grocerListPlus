@@ -1,6 +1,7 @@
 import React, { PureComponent } from 'react';
 import { View, TextInput, FlatList } from 'react-native';
 import { styles } from './StoresPage.styles';
+import { useRoute } from '@react-navigation/native';
 import { Button, Dialog, Portal, Provider, IconButton, Text, Searchbar, Snackbar, List, Divider } from 'react-native-paper';
 import {
 	db, insertStore, selectStoresByStoreType, deleteStore, deleteItemsByStoreId, updateStoreType,
@@ -18,25 +19,69 @@ class StoresPage extends PureComponent {
 		this.setHeader(props.navigation)
 
 		this.state = {
-			toggleShowAddStoreModal: false,
+			searchResults: [],
+			stores: [],
+
+			//store text changes
+			storeNameText: '',
+
+			// Toggle true or false
 			toggleDeleteStoreConfirmation: false,
 			toggleExtraStoreOptions: false,
 			toggleEditStoreModal: false,
-			storeNameText: '',
-			stores: [],
-			searchResults: [],
-			isRefreshing: false,
-			storeToDelete: null,
-			storeIDToEdit: null,
+			toggleRefreshing: false,
 			toggleSearch: false,
+			toggleShowAddStoreModal: false,
 			toggleSnackBar: false,
-			snackBarStoreId: null,
+
+			//Store Ids to perform actions to
+			storeIdToUndo: null,
+			storeIdToEdit: null,
+			storeIdToDelete: null,
 		};
 	}
 
-	setHeader = (navigation) => {
+	componentDidMount = () => {
+		//console.debug('StoresPage did Mount)
+		this._unsubscribe = this.props.navigation.addListener('focus', () => {
+			this.forceRefresh()
+		})
+	}
+
+	componentDidCatch(error, info) { }
+
+	componentDidUpdate = () => {
+		console.debug('ArchiveStorePage did update')
+		if (this.props.route.name === 'ArchiveStores') {
+			this.setTabHeader(this.props.navigation)
+			this.setHeader(this.props.route.params.stackNavigation)
+		}
+	}
+
+	componentWillUnmount = () => {
+		this._unsubscribe();
+	}
+
+	// Headers are set here
+
+	/**
+	 * setTabHeader
+	 * @param {*} navigation 
+	 */
+	setTabHeader = (navigation) => {
 		navigation.setOptions({
-			headerTitle: 'Stores',
+			title: 'Store'
+		})
+	}
+
+	/**
+	 * 
+	 * @param {*} navigation 
+	 */
+	setHeader = (navigation) => {
+		const { route } = this.props
+		navigation.setOptions({
+			headerTitle: route.name === 'ArchiveStores' ? 'Archive' : 'Stores',
 			headerStyle: {
 				backgroundColor: '#5C00E7',
 			},
@@ -63,73 +108,62 @@ class StoresPage extends PureComponent {
 		})
 	}
 
-	componentDidMount = () => {
-		this._unsubscribe = this.props.navigation.addListener('focus', () => {
-			this.queryStores()
-		})
-	}
+	// Toggles are set here
 
-	componentDidCatch(error, info) { }
-
-	componentDidUpdate = () => { }
-
-	componentWillUnmount = () => {
-		this._unsubscribe();
-	}
-
-	queryStores() {
-		console.debug('exec queryStores')
-		db.transaction(tx => {
-			tx.executeSql(
-				selectStoresByStoreType,
-				[storeType.INUSE],
-				(_, { rows: { _array } }) => {
-					console.debug(_array)
-					this.setState({
-						stores: _array
-					})
-					console.debug('success')
-				},
-				() => console.debug("Error")
-			)
-		})
-	}
-
+	/**
+	 * 
+	 */
 	toggleShowAddStoreModal = () => {
 		this.setState({
 			toggleShowAddStoreModal: !this.state.toggleShowAddStoreModal
 		});
 	};
 
+	/**
+	 * 
+	 * @param {*} id 
+	 */
 	toggleDeleteStoreConfirmation = (id) => {
 		this.setState({
-			storeToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
+			storeIdToDelete: this.state.toggleDeleteItemConfirmation && id !== null ? null : id,
 			toggleDeleteStoreConfirmation: !this.state.toggleDeleteStoreConfirmation,
 		})
 	}
 
+	/**
+	 * 
+	 */
 	toggleSearchBar = () => {
 		this.setState({
 			toggleSearch: !this.state.toggleSearch
 		})
 	}
 
+	/**
+	 * 
+	 * @param {*} id 
+	 */
 	toggleSnackBar = (id) => {
-		console.debug('ID: ' + id)
 		this.setState({
-			snackBarStoreId: id ? id : this.state.snackBarStoreId,
+			storeIdToUndo: id ? id : this.state.storeIdToUndo,
 			toggleSnackBar: true
 		})
-		console.debug('ID: ' + this.state.snackBarStoreId)
 	}
 
+	/**
+	 * 
+	 * @param {*} id 
+	 */
 	toggleExtraStoreOptions = (id) => {
 		this.setState({
-			storeIDToEdit: id ? id : this.state.storeIDToEdit,
+			storeIdToEdit: id ? id : this.state.storeIdToEdit,
 			toggleExtraStoreOptions: !this.state.toggleExtraStoreOptions
 		})
 	}
 
+	/**
+	 * 
+	 */
 	toggleEditStoreModal = () => {
 		this.setState({
 			toggleEditStoreModal: !this.state.toggleEditStoreModal
@@ -137,14 +171,66 @@ class StoresPage extends PureComponent {
 	}
 
 	/**
+	 * 
+	 */
+	toggleRefreshing = () => {
+		this.setState({
+			toggelRefreshing: !this.state.toggleRefreshing
+		})
+	}
+
+	/**
+	 * 
+	 */
+	selectStoresByStoreType() {
+		console.debug('exec selectStoresByStoreType')
+		var args = []
+		switch (this.props.route.name) {
+			case 'Stores':
+				args = [storeType.INUSE]
+				break
+			case 'ArchiveStores':
+				args = [storeType.ARCHIVE]
+				break
+		}
+		db.transaction(tx => {
+			tx.executeSql(
+				selectStoresByStoreType,
+				args,
+				(_, { rows: { _array } }) => {
+					this.setState({
+						stores: _array
+					})
+					console.debug('success')
+				},
+				(error) => console.debug(error)
+			)
+		},
+			(error) => console.debug(error),
+			() => console.debug('success'))
+	}
+
+
+
+	/**
 	 * it will ever only be the undo back to the store item page
 	 */
-	undoUpdateStoreType = () => {
+	updateStoreType = () => {
+		var args = []
+		switch (this.props.route.name) {
+			case 'Stores':
+				args = [storeType.INUSE, this.state.storeIdToUndo]
+				break
+			case 'ArchiveStores':
+				args = [storeType.ARCHIVE, this.state.storeIdToUndo]
+				break
+		}
+
 		db.transaction(tx => {
-			console.debug('exec changeStoreType: ' + this.state.snackBarStoreId)
+			console.debug('exec changeStoreType: ' + this.state.storeIdToUndo)
 			tx.executeSql(
 				updateStoreType,
-				[storeType.INUSE, this.state.snackBarStoreId],
+				args,
 				() => console.debug('changeStoreType success'),
 				() => console.debug('changeStoreType error')
 			)
@@ -159,19 +245,12 @@ class StoresPage extends PureComponent {
 			})
 	}
 
-	searchForStore = () => {
-		const { stores, searchText } = this.state
-		this.setState({
-			searchResults: searchByStoreName(stores, searchText)
-		})
-	}
-
 	deleteStore = () => {
 		db.transaction(tx => {
 			console.debug('exec deleteItemsByStoreId')
-			tx.executeSql(deleteItemsByStoreId, [this.state.storeToDelete])
+			tx.executeSql(deleteItemsByStoreId, [this.state.storeIdToDelete])
 			console.debug('exec deleteStore')
-			tx.executeSql(deleteStore, [this.state.storeToDelete])
+			tx.executeSql(deleteStore, [this.state.storeIdToDelete])
 		},
 			(error) => console.debug(error),
 			() => {
@@ -182,27 +261,40 @@ class StoresPage extends PureComponent {
 		)
 	}
 
-	addStoreName = () => {
+	insertStore = () => {
 		var date = moment(new Date()).format('YYYY-MM-DD')
-		console.debug('exec addStoreName ' + this.state.storeNameText + " " + date)
+		var args = []
+		switch (this.props.route.name) {
+			case 'Stores':
+				args = [this.state.storeNameText, date, null, storeType.INUSE]
+				break
+			case 'ArchiveStores':
+				args = [this.state.storeNameText, date, date, storeType.ARCHIVE]
+				break
+		}
+		console.debug('exec insertStore ' + this.state.storeNameText + " " + date)
 		db.transaction(tx => {
-			tx.executeSql(insertStore, [this.state.storeNameText, date, storeType.INUSE],
+			tx.executeSql(
+				insertStore,
+				args,
 				() => {
 					console.debug("Success")
 					this.toggleShowAddStoreModal()
-					this.queryStores()
+					this.forceRefresh()
 				},
-				() => console.debug("Error")
+				(error) => console.debug(error)
 			)
-		})
+		},
+			(error) => console.debug(error),
+			() => console.debug('Success'))
 	}
 
-	editStoreName = () => {
+	updateStoreName = () => {
 		console.debug('exec editStore')
 		db.transaction(tx => {
 			tx.executeSql(
 				updateStoreName,
-				[this.state.storeNameText, this.state.storeIDToEdit],
+				[this.state.storeNameText, this.state.storeIdToEdit],
 				() => {
 					console.debug('success')
 					this.toggleEditStoreModal()
@@ -215,12 +307,20 @@ class StoresPage extends PureComponent {
 
 	forceRefresh = () => {
 		this.setState({
-			isRefreshing: true,
-			storeNameText: ''
+			storeNameText: '',
+			toggleRefreshing: true,
 		})
-		this.queryStores()
+		this.selectStoresByStoreType()
 		this.setState({
-			isRefreshing: false
+			toggleRefreshing: false
+		})
+	}
+
+
+	searchForStore = () => {
+		const { stores, searchText } = this.state
+		this.setState({
+			searchResults: searchByStoreName(stores, searchText)
 		})
 	}
 
@@ -236,7 +336,7 @@ class StoresPage extends PureComponent {
 				<FlatList
 					style={styles.HomePageWrapper}
 					onRefresh={this.forceRefresh}
-					refreshing={this.state.isRefreshing}
+					refreshing={this.state.toggleRefreshing}
 					data={this.state.toggleSearch ? this.state.searchResults : this.state.stores}
 					keyExtractor={(item) => item.id.toString()}
 					renderItem={({ item, index, seperator }) => (
@@ -253,11 +353,11 @@ class StoresPage extends PureComponent {
 				<Snackbar
 					visible={this.state.toggleSnackBar}
 					onDismiss={this.toggleSnackBar}
-					duration={5000}
+					duration={Snackbar.DURATION_SHORT}
 					action={{
 						label: 'Undo',
 						onPress: () => {
-							this.undoUpdateStoreType()
+							this.updateStoreType()
 						}
 					}}>
 					Switch this store back!
@@ -277,7 +377,7 @@ class StoresPage extends PureComponent {
 						</Dialog.Content>
 						<Dialog.Actions>
 							<Button onPress={this.toggleShowAddStoreModal}>Cancel</Button>
-							<Button onPress={this.addStoreName}>Done</Button>
+							<Button onPress={this.insertStore}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>
 				</Portal>
@@ -313,7 +413,7 @@ class StoresPage extends PureComponent {
 						</Dialog.Content>
 						<Dialog.Actions>
 							<Button onPress={this.toggleEditStoreModal}>Cancel</Button>
-							<Button onPress={this.editStoreName}>Done</Button>
+							<Button onPress={this.updateStoreName}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>
 				</Portal>

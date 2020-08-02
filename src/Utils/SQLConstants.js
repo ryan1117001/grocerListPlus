@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS items (
 );`
 
 // Stores
-export const insertStore = 'INSERT INTO stores (storeName, dateToGo, storeType) values (?,?,?);'
+export const insertStore = 'INSERT INTO stores (storeName, dateToGo, archiveDate, storeType) values (?,?,?,?);'
 export const deleteStores = 'DELETE FROM stores;'
 export const deleteStore = 'DELETE FROM stores WHERE id=?;'
 export const selectAllStores = 'SELECT * FROM stores;'
