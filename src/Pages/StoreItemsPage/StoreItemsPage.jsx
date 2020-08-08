@@ -9,42 +9,88 @@ import {
 import { Calendar } from 'react-native-calendars'
 import {
 	db, deleteItem, insertStoreItem, updateItemType,
-	updateDateToGo, selectItemsByItemTypeAndStoreId
+	updateDateToGo, selectItemsByItemTypeAndStoreId,
+	selectAllItemJoinedStoresByItemType
 } from '../../Utils/SQLConstants';
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
-import { itemType } from '../../Utils/TypeConstants'
+import { itemType, storeType } from '../../Utils/TypeConstants'
 import moment from 'moment'
 import { searchByItemName } from '../../Utils/SearchUtil'
+import { isUndefined } from 'lodash';
 
 class StoreItemsPage extends PureComponent {
 	constructor(props) {
 		super(props);
 
+		const { params } = props.route
+
+		var dateToGo = null, storeId = null, storeName = null
+		if (!isUndefined(params)) {
+			dateToGo = params.dateToGo
+			storeId = params.storeId
+			storeName = params.storeName
+		}
+
 		this.state = {
-			toggleDeleteItemConfirmation: false,
-			toggleCalendarModal: false,
-			toggleAddItemModal: false,
-			toggleEditStoreModal: false,
-			selectedDate: props.route.params.dateToGo,
-			storeName: props.route.params.storeName,
-			storeId: props.route.params.storeId,
-			itemNameText: '',
-			isRefreshing: false,
+			// Data
 			storeItemData: [],
 			searchResults: [],
-			itemToDelete: '',
+			stores: [],
+
+			// Text changes
 			searchText: '',
+			itemNameText: '',
+
+			// Toggle
+			toggleAddItemModal: false,
+			toggleAddInventoryItemModal: false,
+			toggleCalendarModal: false,
+			toggleDeleteItemConfirmation: false,
+			toggleEditStoreModal: false,
+			toggleExtraOptions: false,
+			toggleRefreshing: false,
 			toggleSearch: false,
 			toggleSnackBar: false,
-			snackBarItemId: null
+
+			// Store related items
+			selectedDate: dateToGo,
+			storeId: storeId,
+			storePickerId: 0,
+
+			//Store Ids to perform actions tp
+			itemIdToDelete: null,
+			itemIdForSnackBar: null,
+			itemIdForExtraOptions: null,
+			itemTypeForExtraOptions: null,
+
+			// Nav Settings
+			pageTitle: this.setPageTitle(storeName),
 		};
 
 		this.setHeader(props.navigation)
 	}
 
+	setPageTitle = (storeName) => {
+		const { route } = this.props
+		switch (route.name) {
+			case 'StoreItems':
+				return storeName
+			case 'InventoryItems':
+				return 'Inventory'
+			case 'ArchiveItems':
+				return 'Archive'
+			default:
+				return ''
+		}
+	}
+
+	/**
+	 * 
+	 * @param {*} navigation 
+	 */
 	setHeader = (navigation) => {
 		navigation.setOptions({
-			title: this.state.storeName,
+			title: this.state.pageTitle,
 			headerStyle: {
 				backgroundColor: '#5C00E7',
 			},
@@ -66,6 +112,16 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
+	/**
+	 * 
+	 * @param {*} navigation 
+	 */
+	setTabHeader = (navigation) => {
+		navigation.setOptions({
+			title: 'Items'
+		})
+	}
+
 	componentDidMount = () => {
 		this._unsubscribe = this.props.navigation.addListener('focus', () => {
 			this.forceRefresh()
@@ -76,52 +132,79 @@ class StoreItemsPage extends PureComponent {
 
 	componentDidUpdate = () => {
 		// console.debug('StoreItemsPage did update')
+		if (this.props.route.name === 'ArchiveItems') {
+			this.setTabHeader(this.props.route.params.stackNavigation)
+		}
 	}
 
 	componentWillUnmount = () => {
 		this._unsubscribe();
 	}
 
-	toggleCalendarModal = () => {
-		this.setState({
-			toggleCalendarModal: !this.state.toggleCalendarModal
-		})
-	}
-
+	/**
+	 * 
+	 */
 	toggleAddItemModal = () => {
 		this.setState({
 			toggleAddItemModal: !this.state.toggleAddItemModal
 		})
 	}
 
+	/**
+	 * 
+	 */
+	toggleCalendarModal = () => {
+		this.setState({
+			toggleCalendarModal: !this.state.toggleCalendarModal
+		})
+	}
+
+	/**
+	 * 
+	 * @param {*} id 
+	 */
 	toggleDeleteItemConfirmation = (id) => {
 		this.setState({
-			itemToDelete: id ? id : this.state.itemToDelete,
+			itemIdToDelete: id ? id : this.state.itemIdToDelete,
 			toggleDeleteItemConfirmation: !this.state.toggleDeleteItemConfirmation,
 		})
 	}
 
+	/**
+	 * 
+	 * @param {*} id 
+	 */
+	toggleExtraOptions = (id, itemType) => {
+		this.setState({
+			itemIdForExtraOptions: id ? id : this.state.itemIdForExtraOptions,
+			itemTypeForExtraOptions: itemType ? itemType : this.state.itemTypeForExtraOptions,
+			toggleExtraOptions: !this.state.toggleExtraOptions
+		})
+	}
+
+	/**
+	 * 
+	 */
 	toggleSearchBar = () => {
 		this.setState({
 			toggleSearch: !this.state.toggleSearch
 		})
 	}
 
+	/**
+	 * 
+	 * @param {*} id 
+	 */
 	toggleSnackBar = (id) => {
 		console.debug('ID: ' + id)
 		this.setState({
-			snackBarItemId: id ? id : this.state.snackBarItemId,
+			itemIdForSnackBar: id ? id : this.state.itemIdForSnackBar,
 			toggleSnackBar: true
 		})
-		console.debug('ID: ' + this.state.snackBarItemId)
+		console.debug('ID: ' + this.state.itemIdForSnackBar)
 	}
 
-	toggleExtraOptions = (id) => {
-		this.setState({
-			extraOptionItemId: id ? id : this.state.extraOptionItemId,
-			toggleExtraOptions: !this.state.toggleExtraOptions
-		})
-	}
+
 
 	searchForItem = () => {
 		const { storeItemData, searchText } = this.state
@@ -173,10 +256,10 @@ class StoreItemsPage extends PureComponent {
 	 */
 	undoUpdateItemType = () => {
 		db.transaction(tx => {
-			console.debug('exec changeItemType: ' + this.state.snackBarItemId)
+			console.debug('exec changeItemType: ' + this.state.itemIdForSnackBar)
 			tx.executeSql(
 				updateItemType,
-				[itemType.STORE, this.state.snackBarItemId],
+				[itemType.STORE, this.state.itemIdForSnackBar],
 				() => console.debug('changeItemType success'),
 				() => console.debug('changeItemType error')
 			)
@@ -193,7 +276,7 @@ class StoreItemsPage extends PureComponent {
 
 	updateItemType = (args) => {
 		db.transaction(tx => {
-			console.debug('exec changeItemType: ' + this.state.extraOptionItemId)
+			console.debug('exec changeItemType: ' + this.state.itemIdForExtraOptions)
 			tx.executeSql(
 				updateItemType,
 				args,
@@ -206,7 +289,7 @@ class StoreItemsPage extends PureComponent {
 				console.debug('transaction success')
 				this.forceRefresh()
 				this.toggleExtraOptions()
-				this.toggleSnackBar(this.state.extraOptionItemId)
+				this.toggleSnackBar(this.state.itemIdForExtraOptions)
 			})
 	}
 
@@ -221,13 +304,13 @@ class StoreItemsPage extends PureComponent {
 					this.toggleDeleteItemConfirmation(id)
 					this.forceRefresh()
 				},
-				() => console.debug('error')
+				(error) => console.debug(error)
 			)
 		})
 	}
 
 	queryAllStoreItems = () => {
-		console.debug('all unchecked')
+		console.debug('exec selectItemsByItemTypeAndStoreId')
 		db.transaction(tx => {
 			tx.executeSql(
 				selectItemsByItemTypeAndStoreId,
@@ -237,22 +320,55 @@ class StoreItemsPage extends PureComponent {
 						storeItemData: _array
 					})
 				},
-				() => console.debug('Error')
+				(error) => console.debug(error)
+			)
+		},
+			(error) => console.debug(error))
+	}
+
+	querySelectAllItemJoinedStoresByItemType = (args) => {
+		console.debug('exec selectAllItemJoinedStoresByItemType')
+		db.transaction(tx => {
+			tx.executeSql(
+				selectAllItemJoinedStoresByItemType,
+				args,
+				(_, { rows: { _array } }) => {
+					this.setState({
+						storeItemData: _array
+					})
+				},
+				(error) => console.debug(error)
 			)
 		})
 	}
 
 	forceRefresh = () => {
+		const { route } = this.props
 		this.setState({
-			isRefreshing: true
+			toggleRefreshing: true
 		})
-		this.queryAllStoreItems()
+		switch (route.name) {
+			case 'StoreItems':
+				this.queryAllStoreItems()
+				break;
+			case 'InventoryItems':
+				this.querySelectAllItemJoinedStoresByItemType([itemType.INVENTORY])
+				break;
+			case 'ArchiveItems':
+				this.querySelectAllItemJoinedStoresByItemType([itemType.ARCHIVE])
+				break;
+			default:
+				break;
+		}
+
 		this.setState({
-			isRefreshing: false
+			toggleRefreshing: false
 		})
 	}
 
 	render() {
+
+		const { route } = this.props
 		return (
 			<Provider>
 				{this.state.toggleSearch && <Searchbar
@@ -262,7 +378,7 @@ class StoreItemsPage extends PureComponent {
 					onSubmitEditing={this.searchForItem}
 				/>}
 				{/* Store name and dates */}
-				<View style={styles.TitleRowWrapper}>
+				{route.name === 'StoreItems' && <View style={styles.TitleRowWrapper}>
 					<Button
 						onPress={this.toggleAddItemModal}
 					>
@@ -273,10 +389,10 @@ class StoreItemsPage extends PureComponent {
 					>
 						{this.state.selectedDate}
 					</Button>
-				</View>
+				</View>}
 				{/* Showing data */}
 				<FlatList
-					refreshing={this.state.isRefreshing}
+					refreshing={this.state.toggleRefreshing}
 					onRefresh={this.forceRefresh}
 					style={styles.StoreItemsPageWrapper}
 					data={this.state.toggleSearch ? this.state.searchResults : this.state.storeItemData}
@@ -294,7 +410,7 @@ class StoreItemsPage extends PureComponent {
 				<Snackbar
 					visible={this.state.toggleSnackBar}
 					onDismiss={this.toggleSnackBar}
-					duration={5000}
+					duration={Snackbar.DURATION_SHORT}
 					action={{
 						label: 'Undo',
 						onPress: () => {
@@ -349,7 +465,7 @@ class StoreItemsPage extends PureComponent {
 						</Dialog.Actions>
 					</Dialog>
 				</Portal>
-				
+
 				{/* delete item confirmation */}
 				<Portal>
 					<Dialog
@@ -363,7 +479,7 @@ class StoreItemsPage extends PureComponent {
 						</Dialog.Content>
 						<Dialog.Actions>
 							<Button onPress={this.toggleDeleteItemConfirmation}>Cancel</Button>
-							<Button onPress={this.deleteItem.bind(this, this.state.itemToDelete)}>Done</Button>
+							<Button onPress={this.deleteItem.bind(this, this.state.itemIdToDelete)}>Done</Button>
 						</Dialog.Actions>
 					</Dialog>
 				</Portal>
@@ -374,19 +490,26 @@ class StoreItemsPage extends PureComponent {
 						onDismiss={this.toggleExtraOptions}>
 						<Dialog.Title>Extra Options</Dialog.Title>
 						<Dialog.Content>
-							<List.Item
+							{this.state.itemType !== storeType.INUSE && <List.Item
 								title={'Move To Inventory'}
 								onPress={() => {
-									this.updateItemType([itemType.INVENTORY, this.state.extraOptionItemId])
+									this.updateItemType([itemType.STORE, this.state.itemIdForExtraOptions])
 								}}
-							/>
+							/>}
 							<Divider />
-							<List.Item
+							{<List.Item
+								title={'Move To Inventory'}
+								onPress={() => {
+									this.updateItemType([itemType.INVENTORY, this.state.itemIdForExtraOptions])
+								}}
+							/>}
+							<Divider />
+							{<List.Item
 								title={'Move to Archive'}
 								onPress={() => {
-									this.updateItemType([itemType.ARCHIVE, this.state.extraOptionItemId])
+									this.updateItemType([itemType.ARCHIVE, this.state.itemIdForExtraOptions])
 								}}
-							/>
+							/>}
 						</Dialog.Content>
 					</Dialog>
 				</Portal>

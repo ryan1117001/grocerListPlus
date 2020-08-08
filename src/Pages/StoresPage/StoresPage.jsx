@@ -13,12 +13,18 @@ import { storeType } from '../../Utils/TypeConstants';
 import { searchByStoreName } from '../../Utils/SearchUtil'
 
 class StoresPage extends PureComponent {
+	
+	/**
+	 * 
+	 * @param {*} props 
+	 */
 	constructor(props) {
 		super(props);
 
 		this.setHeader(props.navigation)
 
 		this.state = {
+			// Data
 			searchResults: [],
 			stores: [],
 

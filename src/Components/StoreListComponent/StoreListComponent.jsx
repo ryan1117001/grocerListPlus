@@ -15,7 +15,7 @@ class StoreListComponent extends PureComponent {
         super(props)
 
         // console.debug(props)
-        
+
         const { store } = props
         this.state = {
             id: store.id,
@@ -33,7 +33,7 @@ class StoreListComponent extends PureComponent {
             this.setState({
                 id: this.props.store.id,
                 storeName: this.props.store.storeName,
-                dateToGo: date
+                dateToGo: date,
             });
         }
     }
@@ -46,6 +46,7 @@ class StoreListComponent extends PureComponent {
         })
     }
 
+    // TODO: when store is updated, items need to move from store to inventory
     updateItemsOnUpdateStoreType = () => {
         var args = []
         if (this.state.storeType === storeType.ARCHIVE) {

@@ -7,12 +7,15 @@ import { navigationRef } from './src/Utils/RootNavigation';
 import { enableScreens } from 'react-native-screens';
 import StoresPage from './src/Pages/StoresPage/StoresPage';
 import StoreItemsPage from './src/Pages/StoreItemsPage/StoreItemsPage'
-import InventoryItemPage from './src/Pages/InventoryItemPage/InventoryItemPage';
 import SettingsPage from './src/Pages/SettingsPage/SettingsPage';
-import ArchiveItemPage from './src/Pages/ArchiveItemPage/ArchiveItemPage';
 import {
 	db, enableFK, createItemsTable, createStoresTable
 } from './src/Utils/SQLConstants';
+import { YellowBox } from 'react-native';
+
+YellowBox.ignoreWarnings([
+  'Non-serializable values were found in the navigation state',
+]);
 
 function TopTabNavigator({ navigation: stackNavigation }) {
 	const TopTabNav = createMaterialTopTabNavigator()
@@ -35,7 +38,7 @@ function TopTabNavigator({ navigation: stackNavigation }) {
 			/>
 			<TopTabNav.Screen
 				name='ArchiveItems'
-				component={ArchiveItemPage}
+				component={StoreItemsPage}
 				initialParams={{
 					stackNavigation: stackNavigation
 				}}
@@ -115,8 +118,8 @@ function InventoryContainer() {
 	return (
 		<InventoryContainer.Navigator>
 			<InventoryContainer.Screen
-				name='InventoryContainer'
-				component={InventoryItemPage}
+				name='InventoryItems'
+				component={StoreItemsPage}
 			/>
 		</InventoryContainer.Navigator>
 	)
