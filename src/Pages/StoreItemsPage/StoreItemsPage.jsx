@@ -1,7 +1,8 @@
 import React, { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { styles } from './StoreItemsPage.styles'
-import { View, TextInput, FlatList } from 'react-native';
+import { View, FlatList, TextInput } from 'react-native';
+import { Picker } from '@react-native-community/picker'
 import {
 	Modal, Provider, Portal, Snackbar, List, Divider,
 	Button, Dialog, IconButton, Text, Searchbar
@@ -10,10 +11,14 @@ import { Calendar } from 'react-native-calendars'
 import {
 	db, deleteItem, insertStoreItem, updateItemType,
 	updateDateToGo, selectItemsByItemTypeAndStoreId,
-	selectAllItemJoinedStoresByItemType
+	selectAllItemJoinedStoresByItemType, insertInventoryItem,
+	selectAllStores,
+	updateItemAttributes,
+	retrieveUnits,
+	retrieveCategories
 } from '../../Utils/SQLConstants';
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
-import { itemType, storeType } from '../../Utils/TypeConstants'
+import { itemType } from '../../Utils/TypeConstants'
 import moment from 'moment'
 import { searchByItemName } from '../../Utils/SearchUtil'
 import { isUndefined } from 'lodash';
@@ -36,10 +41,22 @@ class StoreItemsPage extends PureComponent {
 			storeItemData: [],
 			searchResults: [],
 			stores: [],
+			units: [],
+			categories: [],
 
-			// Text changes
+			// Info changes
 			searchText: '',
+			selectedDate: dateToGo,
+
+			// Add / Edit Items
+			amountText: '',
 			itemNameText: '',
+			itemPriceText: '',
+			storePickerId: 0,
+			unitPickerId: 0,
+			categoriesPickerId: 0,
+			itemQuantityCounter: 1,
+			experationDate: dateToGo,
 
 			// Toggle
 			toggleAddItemModal: false,
@@ -47,27 +64,31 @@ class StoreItemsPage extends PureComponent {
 			toggleCalendarModal: false,
 			toggleDeleteItemConfirmation: false,
 			toggleEditStoreModal: false,
+			toggleEditItemModal: false,
 			toggleExtraOptions: false,
 			toggleRefreshing: false,
 			toggleSearch: false,
 			toggleSnackBar: false,
 
-			// Store related items
-			selectedDate: dateToGo,
-			storeId: storeId,
-			storePickerId: 0,
+			// Store related store
 
-			//Store Ids to perform actions tp
+			dateToGo: dateToGo,
+			storeId: storeId,
+
+			//Items Ids to perform actions to
 			itemIdToDelete: null,
+			itemIdToEdit: null,
 			itemIdForSnackBar: null,
 			itemIdForExtraOptions: null,
 			itemTypeForExtraOptions: null,
 
+
 			// Nav Settings
 			pageTitle: this.setPageTitle(storeName),
 		};
-
-		this.setHeader(props.navigation)
+		if (this.props.route.name !== 'ArchiveItems') {
+			this.setHeader(props.navigation)
+		}
 	}
 
 	setPageTitle = (storeName) => {
@@ -89,6 +110,7 @@ class StoreItemsPage extends PureComponent {
 	 * @param {*} navigation 
 	 */
 	setHeader = (navigation) => {
+		const { route } = this.props
 		navigation.setOptions({
 			title: this.state.pageTitle,
 			headerStyle: {
@@ -102,6 +124,11 @@ class StoreItemsPage extends PureComponent {
 						color='#FFF'
 						onPress={this.toggleSearchBar}
 					/>
+					{route.name === 'InventoryItems' && <IconButton
+						icon='plus'
+						color='#FFF'
+						onPress={this.toggleAddInventoryItemModal}
+					/>}
 					<IconButton
 						icon='dots-vertical'
 						color='#FFF'
@@ -109,16 +136,6 @@ class StoreItemsPage extends PureComponent {
 					/>
 				</View>
 			)
-		})
-	}
-
-	/**
-	 * 
-	 * @param {*} navigation 
-	 */
-	setTabHeader = (navigation) => {
-		navigation.setOptions({
-			title: 'Items'
 		})
 	}
 
@@ -133,7 +150,7 @@ class StoreItemsPage extends PureComponent {
 	componentDidUpdate = () => {
 		// console.debug('StoreItemsPage did update')
 		if (this.props.route.name === 'ArchiveItems') {
-			this.setTabHeader(this.props.route.params.stackNavigation)
+			this.setHeader(this.props.route.params.stackNavigation)
 		}
 	}
 
@@ -147,6 +164,15 @@ class StoreItemsPage extends PureComponent {
 	toggleAddItemModal = () => {
 		this.setState({
 			toggleAddItemModal: !this.state.toggleAddItemModal
+		})
+	}
+
+	/**
+	 * 
+	 */
+	toggleAddInventoryItemModal = () => {
+		this.setState({
+			toggleAddInventoryItemModal: !this.state.toggleAddInventoryItemModal
 		})
 	}
 
@@ -174,6 +200,33 @@ class StoreItemsPage extends PureComponent {
 	 * 
 	 * @param {*} id 
 	 */
+	toggleEditItemModal = (item) => {
+		if (!this.state.toggleEditItemModal) {
+			console.debug('here')
+			console.debug(item)
+			this.setState({
+				itemIdToEdit: item.itemId ? item.itemId : null,
+				itemNameText: item.itemName ? item.itemName : '',
+				itemPriceText: item ? item.priceAmount : '',
+				amountText: item ? item.amountOfUnit : '',
+				experationDate: item ? item.expirationDate : this.state.dateToGo,
+				categoriesPickerId: item ? item.categoryId : 0,
+				unitPickerId: item ? item.unitId : 0,
+				itemQuantityCounter: item.quantity ? item.quantity : 1,
+				toggleEditItemModal: !this.state.toggleEditItemModal
+			})
+		}
+		else {
+			this.setState({
+				toggleEditItemModal: !this.state.toggleEditItemModal
+			})
+			this.clearInputs()
+		}
+	}
+	/**
+	 * 
+	 * @param {*} id 
+	 */
 	toggleExtraOptions = (id, itemType) => {
 		this.setState({
 			itemIdForExtraOptions: id ? id : this.state.itemIdForExtraOptions,
@@ -196,16 +249,15 @@ class StoreItemsPage extends PureComponent {
 	 * @param {*} id 
 	 */
 	toggleSnackBar = (id) => {
-		console.debug('ID: ' + id)
 		this.setState({
 			itemIdForSnackBar: id ? id : this.state.itemIdForSnackBar,
 			toggleSnackBar: true
 		})
-		console.debug('ID: ' + this.state.itemIdForSnackBar)
 	}
 
-
-
+	/**
+	 * 
+	 */
 	searchForItem = () => {
 		const { storeItemData, searchText } = this.state
 		this.setState({
@@ -213,39 +265,125 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
+	itemQuantityCounterMinus = () => {
+		if (this.state.itemQuantityCounter > 1) {
+			this.setState({
+				itemQuantityCounter: this.state.itemQuantityCounter - 1
+			})
+		}
+	}
+
+	itemQuantityCounterPlus = () => {
+		this.setState({
+			itemQuantityCounter: this.state.itemQuantityCounter + 1
+		})
+	}
+
+	/**
+	 * 
+	 * @param {*} day 
+	 */
 	selectDate = (day) => {
 		var date = moment(day.dateString)
 		db.transaction(tx => {
 			console.debug('exec selectDate ' + day.dateString + " " + this.state.storeId)
-			tx.executeSql(updateDateToGo,
-				[date.format('YYYY-MM-DD'), this.state.storeId],
-				() => {
-					console.debug('Success')
-					this.setState({
-						selectedDate: date.locale('en-US').format('l')
-					})
-				},
-				() => console.debug('Error')
-			)
+			if (this.state.toggleAddItemModal || this.state.toggleEditItemModal) {
+				this.setState({
+					experationDate: date.locale('en-US').format('l')
+				})
+			}
+			else {
+				tx.executeSql(updateDateToGo,
+					[date.format('YYYY-MM-DD'), this.state.storeId],
+					() => {
+						console.debug('Success')
+						this.setState({
+							dateToGo: date.locale('en-US').format('l')
+						})
+					},
+					() => console.debug('Error')
+				)
+			}
 		})
 		this.toggleCalendarModal()
 	}
 
-	addItem = () => {
-		console.debug('exec addItem')
+	/**
+	 * 
+	 * amountText: '',
+			itemNameText: '',
+			itemPriceText: '',
+			storePickerId: 0,
+			unitPickerId: 0,
+			categoriesPickerId: 0,
+			itemQuantityCounter: 1,
+			experationDate: dateToGo,
+	 */
+	addAndEditItem = () => {
+		console.debug('exec addAndEditItem')
 		if (this.state.itemNameText !== '') {
 			db.transaction(tx => {
-				tx.executeSql(insertStoreItem,
-					[this.state.itemNameText, itemType.STORE, this.state.storeId],
+				if (this.state.toggleAddItemModal) {
+					tx.executeSql(insertStoreItem,
+						[this.state.itemNameText, itemType.STORE, this.state.storeId, this.state.categoriesPickerId,
+						this.state.unitPickerId, this.state.experationDate, this.state.itemQuantityCounter,
+						this.state.amountText, this.state.itemPriceText
+						],
+						() => {
+							console.debug('Success')
+
+							this.toggleAddItemModal()
+
+						},
+						(error) => console.debug(error)
+					)
+				}
+				else if (this.state.toggleEditItemModal) {
+					tx.executeSql(
+						updateItemAttributes,
+						[this.state.itemNameText, this.state.categoriesPickerId,
+						this.state.unitPickerId, this.state.experationDate, this.state.itemQuantityCounter,
+						this.state.amountText, this.state.itemPriceText, this.state.itemIdToEdit],
+						() => {
+							this.toggleEditItemModal()
+						},
+						(error) => { console.debug(error) }
+					)
+				}
+			},
+				(error) => {
+					console.debug(error)
+					this.clearInputs()
+				},
+				() => {
+					this.forceRefresh()
+				})
+		}
+	}
+
+	/**
+	 * 
+	 */
+	addInventoryItem = () => {
+		if (this.state.itemNameText !== '') {
+			console.debug(this.state.itemNameText, this.state.storePickerId)
+			var date = moment(new Date()).format('YYYY-MM-DD')
+			db.transaction(tx => {
+				tx.executeSql(insertInventoryItem,
+					[this.state.itemNameText, itemType.INVENTORY, this.state.storePickerId, date],
 					() => {
-						console.debug('Success')
-						this.queryAllStoreItems()
-						this.toggleAddItemModal()
+						console.debug('success')
+						this.queryAllInventoriedItems()
+						this.toggleAddInventoryItemModal()
 						this.setState({
-							itemNameText: ''
+							itemNameText: '',
+							storePickerId: ''
 						})
 					},
-					() => console.debug('Error')
+					(error) => {
+						console.debug(error)
+						this.toggleAddInventoryItemModal()
+					}
 				)
 			})
 		}
@@ -274,6 +412,10 @@ class StoreItemsPage extends PureComponent {
 			})
 	}
 
+	/**
+	 * 
+	 * @param {*} args 
+	 */
 	updateItemType = (args) => {
 		db.transaction(tx => {
 			console.debug('exec changeItemType: ' + this.state.itemIdForExtraOptions)
@@ -293,6 +435,10 @@ class StoreItemsPage extends PureComponent {
 			})
 	}
 
+	/**
+	 * 
+	 * @param {*} id 
+	 */
 	deleteItem = (id) => {
 		console.debug('delete item')
 		db.transaction(tx => {
@@ -300,7 +446,6 @@ class StoreItemsPage extends PureComponent {
 				deleteItem,
 				[id],
 				() => {
-					console.debug('success')
 					this.toggleDeleteItemConfirmation(id)
 					this.forceRefresh()
 				},
@@ -309,6 +454,9 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
+	/**
+	 * 
+	 */
 	queryAllStoreItems = () => {
 		console.debug('exec selectItemsByItemTypeAndStoreId')
 		db.transaction(tx => {
@@ -326,6 +474,10 @@ class StoreItemsPage extends PureComponent {
 			(error) => console.debug(error))
 	}
 
+	/**
+	 * 
+	 * @param {*} args 
+	 */
 	querySelectAllItemJoinedStoresByItemType = (args) => {
 		console.debug('exec selectAllItemJoinedStoresByItemType')
 		db.transaction(tx => {
@@ -342,6 +494,72 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
+	/**
+	 * 
+	 */
+	queryAllStores() {
+		db.transaction(tx => {
+			tx.executeSql(
+				selectAllStores,
+				[],
+				(_, { rows: { _array } }) => {
+
+					if (_array.length > 0) {
+						this.setState({
+							stores: _array,
+							storePickerId: _array[0].id
+						})
+					}
+				},
+				(error) => console.debug(error)
+			)
+		})
+	}
+
+	/**
+	 * 
+	 */
+	queryAllUnits() {
+		db.transaction(tx => {
+			tx.executeSql(
+				retrieveUnits,
+				[],
+				(_, { rows: { _array } }) => {
+					if (_array.length > 0) {
+						this.setState({
+							units: _array,
+							unitPickerId: _array[0].id
+						})
+					}
+				},
+				(error) => console.debug(error)
+			)
+		})
+	}
+
+	/**
+	 * 
+	 */
+	queryAllCategories() {
+		db.transaction(tx => {
+			tx.executeSql(retrieveCategories,
+				[],
+				(_, { rows: { _array } }) => {
+					if (_array.length > 0) {
+						this.setState({
+							categories: _array,
+							categoriesPickerId: _array[0].id
+						})
+					}
+				},
+				(error) => console.debug(error)
+			)
+		})
+	}
+
+	/**
+	 * 
+	 */
 	forceRefresh = () => {
 		const { route } = this.props
 		this.setState({
@@ -353,6 +571,7 @@ class StoreItemsPage extends PureComponent {
 				break;
 			case 'InventoryItems':
 				this.querySelectAllItemJoinedStoresByItemType([itemType.INVENTORY])
+				this.queryAllStores()
 				break;
 			case 'ArchiveItems':
 				this.querySelectAllItemJoinedStoresByItemType([itemType.ARCHIVE])
@@ -360,17 +579,84 @@ class StoreItemsPage extends PureComponent {
 			default:
 				break;
 		}
-
+		this.queryAllCategories()
+		this.queryAllUnits()
+		this.clearInputs()
 		this.setState({
 			toggleRefreshing: false
 		})
 	}
 
-	render() {
+	clearInputs = () => {
+		this.setState({
+			itemNameText: '',
+			itemPriceText: '',
+			amountText: '',
+			experationDate: this.state.dateToGo,
+			categoriesPickerId: 0,
+			unitPickerId: 0,
+			itemQuantityCounter: 1
+		})
+	}
 
+	/**
+	 * 
+	 */
+	renderStorePickerItems = () => {
+		if (this.state.stores.length > 0) {
+			return (
+				this.state.stores.map((item) => {
+					return (
+						<Picker.Item key={item.id} label={item.storeName} value={item.id} />
+					)
+				})
+			)
+		}
+	}
+
+	/**
+	 * 
+	 */
+	renderUnitPickerItems = () => {
+		if (this.state.units.length > 0) {
+			return (
+				this.state.units.map((item) => {
+					return (
+						<Picker.Item key={item.id} label={item.unitName} value={item.id} />
+					)
+				})
+			)
+		}
+	}
+
+	/**
+	 * 
+	 */
+	renderCategoriesPickerItems = () => {
+		if (this.state.categories.length > 0) {
+			return (
+				this.state.categories.map((item) => {
+					return (
+						<Picker.Item key={item.id} label={item.category + ": " + item.subCategory} value={item.id} />
+					)
+				})
+			)
+		}
+	}
+
+	/**
+	 * 
+	 */
+	render() {
 		const { route } = this.props
+		const StorePickerValueList = this.renderStorePickerItems()
+		const UnitPickerValueList = this.renderUnitPickerItems()
+		const CategoryPickerValueList = this.renderCategoriesPickerItems()
+
 		return (
-			<Provider>
+			<Provider
+				styles={styles.StoreItemsPageWrapper}
+			>
 				{this.state.toggleSearch && <Searchbar
 					placeholder='Search'
 					onChangeText={query => this.setState({ searchText: query })}
@@ -387,16 +673,16 @@ class StoreItemsPage extends PureComponent {
 					<Button
 						onPress={this.toggleCalendarModal}
 					>
-						{this.state.selectedDate}
+						Going on: {this.state.dateToGo}
 					</Button>
 				</View>}
 				{/* Showing data */}
 				<FlatList
 					refreshing={this.state.toggleRefreshing}
 					onRefresh={this.forceRefresh}
-					style={styles.StoreItemsPageWrapper}
+					style={styles.FlatListWrapper}
 					data={this.state.toggleSearch ? this.state.searchResults : this.state.storeItemData}
-					keyExtractor={(item) => item.id.toString()}
+					keyExtractor={(item) => item.itemId.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<ItemListComponent
 							item={item}
@@ -404,6 +690,7 @@ class StoreItemsPage extends PureComponent {
 							toggleDeleteItemConfirmationFunc={this.toggleDeleteItemConfirmation}
 							toggleSnackBarFunc={this.toggleSnackBar}
 							toggleExtraOptionsFunc={this.toggleExtraOptions}
+							toggleEditItemModalFunc={this.toggleEditItemModal}
 						/>
 					)}
 				/>
@@ -419,6 +706,183 @@ class StoreItemsPage extends PureComponent {
 					}}>
 					Switch item back to this store!
       			</Snackbar>
+				<Portal>
+					<Dialog
+						visible={this.state.toggleAddInventoryItemModal}
+						onDismiss={this.toggleAddInventoryItemModal}>
+						<Dialog.ScrollArea>
+							<Dialog.Title> Add Inventory Item </Dialog.Title>
+							<Dialog.Content>
+								<Divider />
+								<TextInput
+									style={styles.dialogTextInput}
+									mode='outlined'
+									placeholder={'Name'}
+									onChangeText={text => this.setState({ itemNameText: text })}
+								/>
+								<Divider />
+								<View>
+									<Text> Stores </Text>
+									<Picker
+										selectedValue={this.state.storePickerId}
+										onValueChange={(itemValue, itemIndex) => {
+											this.setState({ storePickerId: itemValue })
+										}
+										}
+										mode='dropdown'
+									>
+										{StorePickerValueList}
+									</Picker>
+								</View>
+								<Divider />
+							</Dialog.Content>
+							<Dialog.Actions>
+								<Button onPress={this.toggleAddInventoryItemModal}>Cancel</Button>
+								<Button onPress={this.addInventoryItem}>Done</Button>
+							</Dialog.Actions>
+						</Dialog.ScrollArea>
+					</Dialog>
+				</Portal>
+
+				<Portal>
+					<Dialog
+						visible={this.state.toggleAddItemModal || this.state.toggleEditItemModal}
+						onDismiss={this.state.toggleAddItemModal ? this.toggleAddItemModal : this.toggleEditItemModal}>
+						<Dialog.Title>{this.state.toggleAddItemModal ? 'Add Item' : 'Edit Item'}</Dialog.Title>
+						<Dialog.Content>
+							<Divider />
+							<Button
+								onPress={this.selectDate}
+							>
+								Expires on {this.state.experationDate}
+							</Button>
+							<Divider />
+							<TextInput
+								placeholder={'Insert Name (Required)'}
+								placeholderTextColor='#ff6666'
+								value={this.state.itemNameText}
+								onChangeText={text => this.setState({ itemNameText: text })}
+							/>
+							<Divider />
+							<TextInput
+								placeholder={'Insert Price'}
+								value={this.state.itemPriceText}
+								onChangeText={text => this.setState({ itemPriceText: text })}
+							/>
+							<Divider />
+							<View style={styles.CounterWrapper}>
+								<Text							>
+									Quantity:
+								</Text>
+								<IconButton
+									icon='minus'
+									size={20}
+									onPress={this.itemQuantityCounterMinus}
+								/>
+								<Text								>
+									{this.state.itemQuantityCounter}
+								</Text>
+								<IconButton
+									icon='plus'
+									size={20}
+									onPress={this.itemQuantityCounterPlus}
+								/>
+							</View>
+							<Divider />
+							<View
+								style={styles.UnitsWrapper}
+							>
+								<View
+									style={styles.UnitsUserInputWrapper}
+								>
+									<TextInput
+										placeholder={'0.00'}
+										value={this.state.amountText}
+										onChangeText={text => this.setState({ amountText: text })}
+									/>
+								</View>
+								<View
+									style={styles.UnitsUserInputWrapper}
+								>
+									<Picker
+										selectedValue={this.state.unitPickerId}
+										onValueChange={(itemValue, itemIndex) => {
+											this.setState({ unitPickerId: itemValue })
+										}}
+										mode='dropdown'
+									>
+										{UnitPickerValueList}
+									</Picker>
+								</View>
+							</View>
+							<Divider />
+							<Picker
+								selectedValue={this.state.categoriesPickerId}
+								onValueChange={(itemValue, itemIndex) => {
+									this.setState({ categoriesPickerId: itemValue })
+								}}
+								mode='dropdown'
+							>
+								{CategoryPickerValueList}
+							</Picker>
+							<Divider />
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.state.toggleAddItemModal ? this.toggleAddItemModal : this.toggleEditItemModal}>Cancel</Button>
+							<Button onPress={this.addAndEditItem}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+
+				{/* delete item confirmation */}
+				<Portal>
+					<Dialog
+						visible={this.state.toggleDeleteItemConfirmation}
+						onDismiss={this.toggleDeleteItemConfirmation}>
+						<Dialog.Title>Delete Items</Dialog.Title>
+						<Dialog.Content>
+							<Text>
+								Deleting items means that they will no longer be part of the store
+							</Text>
+						</Dialog.Content>
+						<Dialog.Actions>
+							<Button onPress={this.toggleDeleteItemConfirmation}>Cancel</Button>
+							<Button onPress={() => this.deleteItem(this.state.itemIdToDelete)}>Done</Button>
+						</Dialog.Actions>
+					</Dialog>
+				</Portal>
+
+				<Portal>
+					<Dialog
+						visible={this.state.toggleExtraOptions}
+						onDismiss={this.toggleExtraOptions}>
+						<Dialog.Title>Extra Options</Dialog.Title>
+						<Dialog.Content>
+							<Divider />
+							{this.state.itemTypeForExtraOptions !== itemType.STORE && <List.Item
+								title={'Move To Store'}
+								onPress={() => {
+									this.updateItemType([itemType.STORE, this.state.itemIdForExtraOptions])
+								}}
+							/>}
+							<Divider />
+							{this.state.itemTypeForExtraOptions !== itemType.INVENTORY && <List.Item
+								title={'Move To Inventory'}
+								onPress={() => {
+									this.updateItemType([itemType.INVENTORY, this.state.itemIdForExtraOptions])
+								}}
+							/>}
+							<Divider />
+							{this.state.itemTypeForExtraOptions !== itemType.ARCHIVE && <List.Item
+								title={'Move to Archive'}
+								onPress={() => {
+									this.updateItemType([itemType.ARCHIVE, this.state.itemIdForExtraOptions])
+								}}
+							/>}
+							<Divider />
+						</Dialog.Content>
+					</Dialog>
+				</Portal>
 
 				<Portal>
 					<Modal visible={this.state.toggleCalendarModal} onDismiss={this.toggleCalendarModal}>
@@ -446,72 +910,6 @@ class StoreItemsPage extends PureComponent {
 							onPressArrowRight={addMonth => addMonth()}
 						/>
 					</Modal>
-				</Portal>
-
-				<Portal>
-					<Dialog
-						visible={this.state.toggleAddItemModal}
-						onDismiss={this.toggleAddItemModal}>
-						<Dialog.Title>Add Item</Dialog.Title>
-						<Dialog.Content>
-							<TextInput
-								placeholder={'Item Name'}
-								onChangeText={text => this.setState({ itemNameText: text })}
-							/>
-						</Dialog.Content>
-						<Dialog.Actions>
-							<Button onPress={this.toggleAddItemModal}>Cancel</Button>
-							<Button onPress={this.addItem}>Done</Button>
-						</Dialog.Actions>
-					</Dialog>
-				</Portal>
-
-				{/* delete item confirmation */}
-				<Portal>
-					<Dialog
-						visible={this.state.toggleDeleteItemConfirmation}
-						onDismiss={this.toggleDeleteItemConfirmation}>
-						<Dialog.Title>Delete Items</Dialog.Title>
-						<Dialog.Content>
-							<Text>
-								Deleting items means that they will no longer be part of the store
-							</Text>
-						</Dialog.Content>
-						<Dialog.Actions>
-							<Button onPress={this.toggleDeleteItemConfirmation}>Cancel</Button>
-							<Button onPress={this.deleteItem.bind(this, this.state.itemIdToDelete)}>Done</Button>
-						</Dialog.Actions>
-					</Dialog>
-				</Portal>
-
-				<Portal>
-					<Dialog
-						visible={this.state.toggleExtraOptions}
-						onDismiss={this.toggleExtraOptions}>
-						<Dialog.Title>Extra Options</Dialog.Title>
-						<Dialog.Content>
-							{this.state.itemType !== storeType.INUSE && <List.Item
-								title={'Move To Inventory'}
-								onPress={() => {
-									this.updateItemType([itemType.STORE, this.state.itemIdForExtraOptions])
-								}}
-							/>}
-							<Divider />
-							{<List.Item
-								title={'Move To Inventory'}
-								onPress={() => {
-									this.updateItemType([itemType.INVENTORY, this.state.itemIdForExtraOptions])
-								}}
-							/>}
-							<Divider />
-							{<List.Item
-								title={'Move to Archive'}
-								onPress={() => {
-									this.updateItemType([itemType.ARCHIVE, this.state.itemIdForExtraOptions])
-								}}
-							/>}
-						</Dialog.Content>
-					</Dialog>
 				</Portal>
 			</Provider>
 

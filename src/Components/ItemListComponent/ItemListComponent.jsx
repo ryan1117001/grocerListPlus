@@ -12,16 +12,19 @@ class ItemListComponent extends PureComponent {
 		super(props);
 
 		// console.debug(props)
+		const { item } = props
 
 		this.state = {
-			itemName: props.item.itemName,
-			storeName: props.item.storeName,
-			dateToGo: props.item.dateToGo,
-			itemType: props.item.itemType,
-			storeName: props.item.storeName,
-			purchaseDate: moment(props.item.purchaseDate).locale('en-US').format('l'),
-			archiveDate: moment(props.item.archiveDate).locale('en-US').format('l'),
-			id: props.item.id,
+			itemName: item.itemName,
+			quantity: item.quantity,
+			storeName: item.storeName,
+			dateToGo: item.dateToGo,
+			itemType: item.itemType,
+			storeName: item.storeName,
+			expirationDate: moment(item.expirationDate).locale('en-US').format('l'),
+			purchaseDate: moment(item.purchaseDate).locale('en-US').format('l'),
+			archiveDate: moment(item.archiveDate).locale('en-US').format('l'),
+			itemId: item.itemId,
 		};
 	}
 
@@ -46,13 +49,13 @@ class ItemListComponent extends PureComponent {
 
 		switch (this.state.itemType) {
 			case itemType.STORE:
-				args = [itemType.INVENTORY, this.state.id]
+				args = [itemType.INVENTORY, this.state.itemId]
 				break
 			case itemType.INVENTORY:
-				args = [itemType.ARCHIVE, this.state.id]
+				args = [itemType.ARCHIVE, this.state.itemId]
 				break
 			case itemType.ARCHIVE:
-				args = [itemType.INVENTORY, this.state.id]
+				args = [itemType.INVENTORY, this.state.itemId]
 				break
 		}
 
@@ -60,19 +63,17 @@ class ItemListComponent extends PureComponent {
 			console.debug('exec changeItemType')
 			console.debug(args)
 			tx.executeSql(
-				updateItemType,
-				args,
+				updateItemType, args,
 				() => console.debug('changeItemType success'),
-				() => console.debug('changeItemType error')
+				(error) => console.debug(error)
 			)
 			if (this.state.itemType === itemType.STORE) {
 				console.debug('exec updateItemPurchaseDate')
 				var date = moment(new Date()).format('YYYY-MM-DD')
 				tx.executeSql(
-					updateItemPurchaseDate,
-					[date, this.state.id],
+					updateItemPurchaseDate, [date, this.state.itemId],
 					() => console.debug('updateItemPurchaseDate success'),
-					() => console.debug('updateItemPurchaseDate error')
+					(error) => console.debug(error)
 				)
 			}
 			else if (this.state.itemType === itemType.INVENTORY) {
@@ -80,24 +81,23 @@ class ItemListComponent extends PureComponent {
 				var date = moment(new Date()).format('YYYY-MM-DD')
 				tx.executeSql(
 					updateItemArchiveDate,
-					[date, this.state.id],
+					[date, this.state.itemId],
 					() => console.debug('updateItemArchiveDate success'),
-					() => console.debug('updateItemArchiveDate error')
+					(error) => console.debug(error)
 				)
 			}
 		},
-			() => console.debug('error'),
+			(error) => console.debug(error),
 			() => {
-				console.debug('success')
 				this.props.forceRefreshFunc()
-				this.props.toggleSnackBarFunc(this.state.id)
+				this.props.toggleSnackBarFunc(this.state.itemId)
 			})
 	}
 
 	setDescription = () => {
 		switch (this.state.itemType) {
 			case itemType.STORE:
-				return <Text>Store Temp</Text>
+				return <Text>{"Expires on: " + this.state.expirationDate}</Text>
 			case itemType.INVENTORY:
 				return <Text>{this.state.storeName + " | Purchased On: " + this.state.purchaseDate}</Text>
 			case itemType.ARCHIVE:
@@ -128,19 +128,19 @@ class ItemListComponent extends PureComponent {
 			<Provider>
 				<View style={styles.ItemListComponentWrapper}>
 					<Surface
-						key={this.state.id}
+						key={this.state.itemId}
 						style={styles.Surface}>
 						<List.Item
 							title={<Text style={styles.itemTitle}>{this.state.itemName}</Text>}
-							onPress={() => { }}
-							onLongPress={() => { this.props.toggleExtraOptionsFunc(this.state.id) }}
+							onPress={() => { this.props.toggleEditItemModalFunc(this.props.item) }}
+							onLongPress={() => { this.props.toggleExtraOptionsFunc(this.state.itemId, this.state.itemType) }}
 							description={this.setDescription}
-							key={this.state.id}
+							key={this.state.itemId}
 							left={this.setLeftButton}
 							right={() =>
 								<IconButton
 									icon='trash-can-outline'
-									onPress={() => this.props.toggleDeleteItemConfirmationFunc(this.state.id)}
+									onPress={() => this.props.toggleDeleteItemConfirmationFunc(this.state.itemId)}
 								/>
 							}
 						/>
@@ -154,12 +154,13 @@ class ItemListComponent extends PureComponent {
 ItemListComponent.propTypes = {
 	itemName: PropTypes.string,
 	storeName: PropTypes.string,
-	id: PropTypes.number,
+	itemId: PropTypes.number,
 	dateToGo: PropTypes.string,
 	toggleDeleteItemConfirmationFunc: PropTypes.func,
 	forceRefreshFunc: PropTypes.func,
 	toggleSnackBarFunc: PropTypes.func,
-	toggleExtraOptionsFunc: PropTypes.func
+	toggleExtraOptionsFunc: PropTypes.func,
+	toggleEditItemModalFunc: PropTypes.func
 };
 
 ItemListComponent.defaultProps = {

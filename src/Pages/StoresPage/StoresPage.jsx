@@ -1,8 +1,7 @@
 import React, { PureComponent } from 'react';
 import { View, TextInput, FlatList } from 'react-native';
 import { styles } from './StoresPage.styles';
-import { useRoute } from '@react-navigation/native';
-import { Button, Dialog, Portal, Provider, IconButton, Text, Searchbar, Snackbar, List, Divider } from 'react-native-paper';
+import { Button, Dialog, Portal, Provider, IconButton, Text, Searchbar, Snackbar, List } from 'react-native-paper';
 import {
 	db, insertStore, selectStoresByStoreType, deleteStore, deleteItemsByStoreId, updateStoreType,
 	updateStoreName
@@ -13,7 +12,7 @@ import { storeType } from '../../Utils/TypeConstants';
 import { searchByStoreName } from '../../Utils/SearchUtil'
 
 class StoresPage extends PureComponent {
-	
+
 	/**
 	 * 
 	 * @param {*} props 
@@ -57,9 +56,8 @@ class StoresPage extends PureComponent {
 	componentDidCatch(error, info) { }
 
 	componentDidUpdate = () => {
-		console.debug('ArchiveStorePage did update')
+		// console.debug('ArchiveStorePage did update')
 		if (this.props.route.name === 'ArchiveStores') {
-			this.setTabHeader(this.props.navigation)
 			this.setHeader(this.props.route.params.stackNavigation)
 		}
 	}
@@ -69,17 +67,6 @@ class StoresPage extends PureComponent {
 	}
 
 	// Headers are set here
-
-	/**
-	 * setTabHeader
-	 * @param {*} navigation 
-	 */
-	setTabHeader = (navigation) => {
-		navigation.setOptions({
-			title: 'Store'
-		})
-	}
-
 	/**
 	 * 
 	 * @param {*} navigation 
@@ -207,13 +194,15 @@ class StoresPage extends PureComponent {
 					this.setState({
 						stores: _array
 					})
-					console.debug('success')
+					// console.debug('success')
 				},
 				(error) => console.debug(error)
 			)
 		},
 			(error) => console.debug(error),
-			() => console.debug('success'))
+			() => {
+				// console.debug('success')
+			})
 	}
 
 
@@ -243,7 +232,7 @@ class StoresPage extends PureComponent {
 		},
 			(error) => console.debug(error),
 			() => {
-				console.debug('transaction success')
+				// console.debug('transaction success')
 				this.forceRefresh()
 				this.setState({
 					toggleSnackBar: false
@@ -260,7 +249,7 @@ class StoresPage extends PureComponent {
 		},
 			(error) => console.debug(error),
 			() => {
-				console.debug('parent refresh')
+				// console.debug('parent refresh')
 				this.forceRefresh()
 				this.toggleDeleteStoreConfirmation()
 			}
@@ -284,7 +273,6 @@ class StoresPage extends PureComponent {
 				insertStore,
 				args,
 				() => {
-					console.debug("Success")
 					this.toggleShowAddStoreModal()
 					this.forceRefresh()
 				},
@@ -292,7 +280,10 @@ class StoresPage extends PureComponent {
 			)
 		},
 			(error) => console.debug(error),
-			() => console.debug('Success'))
+			() => {
+				// console.debug('Success') 
+			}
+		)
 	}
 
 	updateStoreName = () => {
@@ -302,11 +293,10 @@ class StoresPage extends PureComponent {
 				updateStoreName,
 				[this.state.storeNameText, this.state.storeIdToEdit],
 				() => {
-					console.debug('success')
 					this.toggleEditStoreModal()
 					this.forceRefresh()
 				},
-				() => console.debug('error')
+				(error) => console.debug(error)
 			)
 		})
 	}

@@ -2,7 +2,15 @@ import React, { PureComponent } from 'react';
 import { View } from 'react-native';
 import { List, Appbar } from 'react-native-paper';
 import * as styles from './SettingsPage.styles';
-import { db, deleteStores, deleteItems, dropItemsTable, dropStoreTable } from '../../Utils/SQLConstants';
+import {
+  db, deleteStores, deleteItems, dropItemsTable, dropStoreTable,
+  dropCategoriesTable, dropSettingsTable, enableFK, createItemsTable,
+  createStoresTable, insertInitSetting,
+  createSettingsTable, createCategoriesTable,
+  insertDefaultCategories, insertDefaultUnits,
+  createUnitsTables,
+  dropUnitsTable
+} from '../../Utils/SQLConstants';
 
 const SETTINGS = [
   {
@@ -62,14 +70,36 @@ class SettingsPage extends PureComponent {
     )
   }
 
-  removeAllTables = () => {
+  reinitailizeDB = () => {
     console.debug('drop tables')
     db.transaction((tx) => {
-      tx.executeSql(dropItemsTable);
-      tx.executeSql(dropStoreTable);
+      //Drop table
+      tx.executeSql(dropItemsTable)
+      tx.executeSql(dropStoreTable)
+      tx.executeSql(dropCategoriesTable)
+      tx.executeSql(dropSettingsTable)
+      tx.executeSql(dropUnitsTable)
+
+      tx.executeSql(enableFK);
+      //create tables
+      tx.executeSql(createStoresTable);
+      tx.executeSql(createItemsTable)
+      tx.executeSql(createSettingsTable)
+      tx.executeSql(createCategoriesTable)
+      tx.executeSql(createUnitsTables)
+      //initialize default settings
+      tx.executeSql(insertInitSetting, [1, 1, 1])
+      tx.executeSql(insertDefaultCategories)
+      tx.executeSql(insertDefaultUnits)
     },
-      (error) => console.debug(error + '\ntransaction error'),
-      () => console.debug('successful')
+      (error) => console.debug(error),
+      () => {
+        console.debug('successful')
+        this.props.navigation.reset({
+          index: 0,
+          routes: [{ name: 'StoreStack' }],
+        });
+      }
     )
   }
 
@@ -82,7 +112,7 @@ class SettingsPage extends PureComponent {
         this.removeAllItems();
         break;
       case 3:
-        this.removeAllTables();
+        this.reinitailizeDB();
         break;
     }
   }
