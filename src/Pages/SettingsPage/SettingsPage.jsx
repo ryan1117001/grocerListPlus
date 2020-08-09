@@ -88,7 +88,7 @@ class SettingsPage extends PureComponent {
       tx.executeSql(createCategoriesTable)
       tx.executeSql(createUnitsTables)
       //initialize default settings
-      tx.executeSql(insertInitSetting, [1, 1, 1])
+      tx.executeSql(insertInitSetting, [1, 1])
       tx.executeSql(insertDefaultCategories)
       tx.executeSql(insertDefaultUnits)
     },

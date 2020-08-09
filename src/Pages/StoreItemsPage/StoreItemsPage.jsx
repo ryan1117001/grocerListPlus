@@ -748,7 +748,7 @@ class StoreItemsPage extends PureComponent {
 					<Dialog
 						visible={this.state.toggleAddItemModal || this.state.toggleEditItemModal}
 						onDismiss={this.state.toggleAddItemModal ? this.toggleAddItemModal : this.toggleEditItemModal}>
-						<Dialog.Title>{this.state.toggleAddItemModal ? 'Add Item' : 'Edit Item'}</Dialog.Title>
+						<Dialog.Title>{this.state.toggleAddItemModal ? 'Add Item' : 'Item Details'}</Dialog.Title>
 						<Dialog.Content>
 							<Divider />
 							<Button

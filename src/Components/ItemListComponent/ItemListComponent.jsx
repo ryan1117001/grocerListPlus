@@ -64,7 +64,9 @@ class ItemListComponent extends PureComponent {
 			console.debug(args)
 			tx.executeSql(
 				updateItemType, args,
-				() => console.debug('changeItemType success'),
+				() => {
+					// console.debug('changeItemType success')
+				},
 				(error) => console.debug(error)
 			)
 			if (this.state.itemType === itemType.STORE) {
@@ -72,7 +74,9 @@ class ItemListComponent extends PureComponent {
 				var date = moment(new Date()).format('YYYY-MM-DD')
 				tx.executeSql(
 					updateItemPurchaseDate, [date, this.state.itemId],
-					() => console.debug('updateItemPurchaseDate success'),
+					() => {
+						// console.debug('updateItemPurchaseDate success')
+					},
 					(error) => console.debug(error)
 				)
 			}
@@ -82,7 +86,9 @@ class ItemListComponent extends PureComponent {
 				tx.executeSql(
 					updateItemArchiveDate,
 					[date, this.state.itemId],
-					() => console.debug('updateItemArchiveDate success'),
+					() => {
+						// console.debug('updateItemArchiveDate success')
+					},
 					(error) => console.debug(error)
 				)
 			}
@@ -97,11 +103,26 @@ class ItemListComponent extends PureComponent {
 	setDescription = () => {
 		switch (this.state.itemType) {
 			case itemType.STORE:
-				return <Text>{"Expires on: " + this.state.expirationDate}</Text>
+				return (
+					<Text>{this.props.item.category + ":" + this.props.item.subCategory}</Text>
+				)
 			case itemType.INVENTORY:
-				return <Text>{this.state.storeName + " | Purchased On: " + this.state.purchaseDate}</Text>
+				return (
+					<Text>
+						{this.state.storeName + " | " + this.props.item.category + ":" + this.props.item.subCategory}
+						{"\nPurchased On: " + this.state.purchaseDate}
+						{"\nExpires On: " + this.props.item.expirationDate}
+					</Text>
+				)
 			case itemType.ARCHIVE:
-				return <Text>{this.state.storeName + " | Archived On: " + this.state.archiveDate}</Text>
+				return (
+					<Text>
+						{this.state.storeName + " | " + this.props.item.category + ":" + this.props.item.subCategory}
+						{"\nPurchased On: " + this.state.purchaseDate}
+						{"\nExpires On: " + this.props.item.expirationDate}
+						{"\nArchived On: " + this.state.archiveDate}
+					</Text>
+				)
 			default:
 				<Text>Description Error</Text>
 				console.debug('Description Error')

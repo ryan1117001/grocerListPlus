@@ -8,8 +8,7 @@ export const enableFK = 'PRAGMA foreign_keys = ON;'
 export const createSettingsTable = `
 CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY,
-    isInitiated INTEGER DEFAULT 0,
-    useMetric INTEGER DEFAULT 1
+    isInitiated INTEGER DEFAULT 0
 );`
 
 // create stores table
@@ -26,8 +25,7 @@ CREATE TABLE IF NOT EXISTS stores (
 export const createUnitsTables = `
 CREATE TABLE IF NOT EXISTS units (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    unitName Text,
-    isMetric INTEGER
+    unitName Text
 );`
 
 // create items table
@@ -70,7 +68,7 @@ export const dropSettingsTable = 'DROP Table settings;'
 export const dropUnitsTable = 'DROP TABLE units;'
 
 // Settings
-export const insertInitSetting = 'INSERT INTO settings (id, isInitiated, useMetric) values (?,?,?);'
+export const insertInitSetting = 'INSERT INTO settings (id, isInitiated) values (?,?);'
 export const retrieveSettings = 'SELECT * FROM settings'
 
 // Units
@@ -125,14 +123,28 @@ export const selectAllItemJoinedStoresByItemType = `
     SELECT * FROM items 
         JOIN stores ON 
             items.storeId = stores.id 
+        JOIN categories ON
+            items.categoryId = categories.id
+        JOIN units ON
+            items.unitId = units.id
         WHERE itemType = ?;
 `
 
 // Default Units
 export const insertDefaultUnits = `
-    INSERT INTO units (unitName, isMetric) values
-    ("lbs.",0),
-    ("kg", 1)
+    INSERT INTO units (unitName) values
+    ("n/a"),
+    ("lbs"),
+    ("oz."),
+    ("gallons"),
+    ("cups"),
+    ("pints"),
+    ("fl. oz."),
+    ("kg"),
+    ("g"),
+    ("mg"),
+    ("L"),
+    ("mL")
 `
 
 // Default Categories

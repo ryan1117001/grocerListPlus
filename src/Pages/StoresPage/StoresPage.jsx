@@ -267,7 +267,6 @@ class StoresPage extends PureComponent {
 				args = [this.state.storeNameText, date, date, storeType.ARCHIVE]
 				break
 		}
-		console.debug('exec insertStore ' + this.state.storeNameText + " " + date)
 		db.transaction(tx => {
 			tx.executeSql(
 				insertStore,
