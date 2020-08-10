@@ -94,8 +94,15 @@ export const deleteItems = 'DELETE FROM items;'
 export const deleteItemsByStoreId = 'DELETE FROM items WHERE storeId = ?;'
 export const deleteItem = 'DELETE FROM items WHERE itemId=?;'
 export const selectItems = 'SELECT * FROM items;'
-export const insertStoreItem = 'INSERT INTO items (itemName, itemType, storeId, categoryId, unitId, expirationDate, quantity, amountOfUnit, priceAmount) values (?,?,?,?,?,?,?,?,?);'
-export const updateItemAttributes = 'UPDATE items SET itemName=?, categoryId=?, unitId=?, expirationDate=?, quantity=?, amountOfUnit=?, priceAmount=? WHERE itemId=?;'
+export const insertStoreItem = `
+    INSERT INTO items 
+        (itemName, itemType, storeId, 
+        categoryId, unitId, expirationDate, 
+        quantity, amountOfUnit, priceAmount, 
+        purchaseDate, archiveDate) 
+        values 
+        (?,?,?,?,?,?,?,?,?,?,?);`
+export const updateItemAttributes = 'UPDATE items SET itemName=?, categoryId=?, unitId=?, expirationDate=?, quantity=?, amountOfUnit=?, priceAmount=?, purchaseDate=?, archiveDate=? WHERE itemId=?;'
 export const insertInventoryItem = 'INSERT INTO items (itemName, itemType, storeId, purchaseDate) values (?,?,?,?);'
 export const updateItemType = 'UPDATE items SET itemType=? WHERE itemId=?;'
 export const updateItemPurchaseDate = 'UPDATE items SET purchaseDate=? WHERE itemId=?;'
@@ -127,7 +134,7 @@ export const selectAllItemJoinedStoresByItemType = `
             items.categoryId = categories.id
         JOIN units ON
             items.unitId = units.id
-        WHERE itemType = ?;
+    WHERE itemType = ?;
 `
 
 // Default Units

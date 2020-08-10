@@ -9,3 +9,9 @@ export const storeType = {
 	INUSE: 'inUse',
 	ARCHIVE: 'archive'
 }
+
+export const selectDateType = {
+	EXPIRATION: 'expiration',
+	PURCHASE: 'purchase',
+	ARCHIVE: 'archive'
+}

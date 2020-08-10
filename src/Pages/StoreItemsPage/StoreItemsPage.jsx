@@ -11,17 +11,17 @@ import { Calendar } from 'react-native-calendars'
 import {
 	db, deleteItem, insertStoreItem, updateItemType,
 	updateDateToGo, selectItemsByItemTypeAndStoreId,
-	selectAllItemJoinedStoresByItemType, insertInventoryItem,
+	selectAllItemJoinedStoresByItemType,
 	selectAllStores,
 	updateItemAttributes,
 	retrieveUnits,
 	retrieveCategories
 } from '../../Utils/SQLConstants';
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
-import { itemType } from '../../Utils/TypeConstants'
+import { itemType, selectDateType } from '../../Utils/TypeConstants'
 import moment from 'moment'
 import { searchByItemName } from '../../Utils/SearchUtil'
-import { isUndefined } from 'lodash';
+import { isUndefined, isNull } from 'lodash';
 
 class StoreItemsPage extends PureComponent {
 	constructor(props) {
@@ -46,7 +46,8 @@ class StoreItemsPage extends PureComponent {
 
 			// Info changes
 			searchText: '',
-			selectedDate: dateToGo,
+			selectedDate: moment(new Date()).locale('en-US').format('l'),
+			selectDateComponentUser: '',
 
 			// Add / Edit Items
 			amountText: '',
@@ -56,7 +57,9 @@ class StoreItemsPage extends PureComponent {
 			unitPickerId: 0,
 			categoriesPickerId: 0,
 			itemQuantityCounter: 1,
-			experationDate: dateToGo,
+			experationDate: moment(new Date()).locale('en-US').format('l'),
+			purchaseDate: moment(new Date()).locale('en-US').format('l'),
+			archiveDate: moment(new Date()).locale('en-US').format('l'),
 
 			// Toggle
 			toggleAddItemModal: false,
@@ -124,10 +127,10 @@ class StoreItemsPage extends PureComponent {
 						color='#FFF'
 						onPress={this.toggleSearchBar}
 					/>
-					{route.name === 'InventoryItems' && <IconButton
+					{(route.name === 'InventoryItems' || route.name === 'ArchiveItems') && <IconButton
 						icon='plus'
 						color='#FFF'
-						onPress={this.toggleAddInventoryItemModal}
+						onPress={this.toggleAddItemModal}
 					/>}
 					<IconButton
 						icon='dots-vertical'
@@ -170,15 +173,6 @@ class StoreItemsPage extends PureComponent {
 	/**
 	 * 
 	 */
-	toggleAddInventoryItemModal = () => {
-		this.setState({
-			toggleAddInventoryItemModal: !this.state.toggleAddInventoryItemModal
-		})
-	}
-
-	/**
-	 * 
-	 */
 	toggleCalendarModal = () => {
 		this.setState({
 			toggleCalendarModal: !this.state.toggleCalendarModal
@@ -202,14 +196,14 @@ class StoreItemsPage extends PureComponent {
 	 */
 	toggleEditItemModal = (item) => {
 		if (!this.state.toggleEditItemModal) {
-			console.debug('here')
-			console.debug(item)
 			this.setState({
 				itemIdToEdit: item.itemId ? item.itemId : null,
 				itemNameText: item.itemName ? item.itemName : '',
 				itemPriceText: item ? item.priceAmount : '',
 				amountText: item ? item.amountOfUnit : '',
-				experationDate: item ? item.expirationDate : this.state.dateToGo,
+				experationDate: item || !isNull(item.experationDate) ? item.expirationDate : moment(new Date()).locale('en-US').format('l'),
+				purchaseDate: item || !isNull(item.purchaseDate) ? item.purchaseDate : moment(new Date()).locale('en-US').format('l'),
+				archiveDate: item || !isNull(item.archiveDate) ? item.archiveDate : moment(new Date()).locale('en-US').format('l'),
 				categoriesPickerId: item ? item.categoryId : 0,
 				unitPickerId: item ? item.unitId : 0,
 				itemQuantityCounter: item.quantity ? item.quantity : 1,
@@ -288,9 +282,25 @@ class StoreItemsPage extends PureComponent {
 		db.transaction(tx => {
 			console.debug('exec selectDate ' + day.dateString + " " + this.state.storeId)
 			if (this.state.toggleAddItemModal || this.state.toggleEditItemModal) {
-				this.setState({
-					experationDate: date.locale('en-US').format('l')
-				})
+				switch (this.state.selectDateComponentUser) {
+					case selectDateType.EXPIRATION:
+						this.setState({
+							experationDate: date.locale('en-US').format('l')
+						})
+						break;
+					case selectDateType.PURCHASE:
+						this.setState({
+							purchaseDate: date.locale('en-US').format('l')
+						})
+						break;
+					case selectDateType.ARCHIVE:
+						this.setState({
+							archiveDate: date.locale('en-US').format('l')
+						})
+						break;
+					default:
+						break;
+				}
 			}
 			else {
 				tx.executeSql(updateDateToGo,
@@ -310,24 +320,36 @@ class StoreItemsPage extends PureComponent {
 
 	/**
 	 * 
-	 * amountText: '',
-			itemNameText: '',
-			itemPriceText: '',
-			storePickerId: 0,
-			unitPickerId: 0,
-			categoriesPickerId: 0,
-			itemQuantityCounter: 1,
-			experationDate: dateToGo,
+	 * 
 	 */
 	addAndEditItem = () => {
 		console.debug('exec addAndEditItem')
 		if (this.state.itemNameText !== '') {
+
+			var itemTypeArg = null, storeId = null
+			switch (this.props.route.name) {
+				case 'StoreItems':
+					itemTypeArg = itemType.STORE
+					storeId = this.state.storeId
+					break;
+				case 'InventoryItems':
+					itemTypeArg = itemType.INVENTORY
+					storeId = this.state.storePickerId
+					break;
+				case 'ArchiveItems':
+					itemTypeArg = itemType.ARCHIVE
+					storeId = this.state.storePickerId
+					break;
+			}
+
 			db.transaction(tx => {
 				if (this.state.toggleAddItemModal) {
 					tx.executeSql(insertStoreItem,
-						[this.state.itemNameText, itemType.STORE, this.state.storeId, this.state.categoriesPickerId,
-						this.state.unitPickerId, this.state.experationDate, this.state.itemQuantityCounter,
-						this.state.amountText, this.state.itemPriceText
+						[
+							this.state.itemNameText, itemTypeArg, storeId,
+							this.state.categoriesPickerId, this.state.unitPickerId, this.state.experationDate,
+							this.state.itemQuantityCounter, this.state.amountText, this.state.itemPriceText,
+							this.state.purchaseDate, this.state.archiveDate
 						],
 						() => {
 							console.debug('Success')
@@ -341,9 +363,12 @@ class StoreItemsPage extends PureComponent {
 				else if (this.state.toggleEditItemModal) {
 					tx.executeSql(
 						updateItemAttributes,
-						[this.state.itemNameText, this.state.categoriesPickerId,
-						this.state.unitPickerId, this.state.experationDate, this.state.itemQuantityCounter,
-						this.state.amountText, this.state.itemPriceText, this.state.itemIdToEdit],
+						[
+							this.state.itemNameText, this.state.categoriesPickerId,
+							this.state.unitPickerId, this.state.experationDate, this.state.itemQuantityCounter,
+							this.state.amountText, this.state.itemPriceText, this.state.purchaseDate,
+							this.state.archiveDate, this.state.itemIdToEdit
+						],
 						() => {
 							this.toggleEditItemModal()
 						},
@@ -358,34 +383,6 @@ class StoreItemsPage extends PureComponent {
 				() => {
 					this.forceRefresh()
 				})
-		}
-	}
-
-	/**
-	 * 
-	 */
-	addInventoryItem = () => {
-		if (this.state.itemNameText !== '') {
-			console.debug(this.state.itemNameText, this.state.storePickerId)
-			var date = moment(new Date()).format('YYYY-MM-DD')
-			db.transaction(tx => {
-				tx.executeSql(insertInventoryItem,
-					[this.state.itemNameText, itemType.INVENTORY, this.state.storePickerId, date],
-					() => {
-						console.debug('success')
-						this.queryAllInventoriedItems()
-						this.toggleAddInventoryItemModal()
-						this.setState({
-							itemNameText: '',
-							storePickerId: ''
-						})
-					},
-					(error) => {
-						console.debug(error)
-						this.toggleAddInventoryItemModal()
-					}
-				)
-			})
 		}
 	}
 
@@ -592,7 +589,9 @@ class StoreItemsPage extends PureComponent {
 			itemNameText: '',
 			itemPriceText: '',
 			amountText: '',
-			experationDate: this.state.dateToGo,
+			experationDate: moment(new Date()).locale('en-US').format('l'),
+			purchaseDate: moment(new Date()).locale('en-US').format('l'),
+			archiveDate: moment(new Date()).locale('en-US').format('l'),
 			categoriesPickerId: 0,
 			unitPickerId: 0,
 			itemQuantityCounter: 1
@@ -752,11 +751,42 @@ class StoreItemsPage extends PureComponent {
 						<Dialog.Content>
 							<Divider />
 							<Button
-								onPress={this.selectDate}
+								onPress={() => {
+									this.toggleCalendarModal()
+									this.setState({
+										selectDateComponentUser: selectDateType.EXPIRATION
+									})
+								}}
 							>
 								Expires on {this.state.experationDate}
 							</Button>
-							<Divider />
+							{(this.props.route.name === "InventoryItems" || this.props.route.name === "ArchiveItems") && <View>
+								<Divider />
+								<Button
+									onPress={() => {
+										this.toggleCalendarModal()
+										this.setState({
+											selectDateComponentUser: selectDateType.PURCHASE
+										})
+									}}
+								>
+									Purchased on {this.state.purchaseDate}
+								</Button>
+								<Divider />
+							</View>}
+							{this.props.route.name === "ArchiveItems" && <View>
+								<Button
+									onPress={() => {
+										this.toggleCalendarModal()
+										this.setState({
+											selectDateComponentUser: selectDateType.ARCHIVE
+										})
+									}}
+								>
+									Archived on {this.state.archiveDate}
+								</Button>
+								<Divider />
+							</View>}
 							<TextInput
 								placeholder={'Insert Name (Required)'}
 								placeholderTextColor='#ff6666'
@@ -825,6 +855,19 @@ class StoreItemsPage extends PureComponent {
 							>
 								{CategoryPickerValueList}
 							</Picker>
+							<Divider />
+							{this.props.route.name !== 'StoreItems' && <View>
+								<Picker
+									selectedValue={this.state.storePickerId}
+									onValueChange={(itemValue, itemIndex) => {
+										this.setState({ storePickerId: itemValue })
+									}
+									}
+									mode='dropdown'
+								>
+									{StorePickerValueList}
+								</Picker>
+							</View>}
 							<Divider />
 						</Dialog.Content>
 						<Dialog.Actions>
