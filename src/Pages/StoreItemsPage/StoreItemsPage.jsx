@@ -21,7 +21,7 @@ import ItemListComponent from '../../Components/ItemListComponent/ItemListCompon
 import { itemType, selectDateType } from '../../Utils/TypeConstants'
 import moment from 'moment'
 import { searchByItemName } from '../../Utils/SearchUtil'
-import { isUndefined, isNull } from 'lodash';
+import { isUndefined, isNull, isEmpty } from 'lodash';
 
 class StoreItemsPage extends PureComponent {
 	constructor(props) {
@@ -127,11 +127,13 @@ class StoreItemsPage extends PureComponent {
 						color='#FFF'
 						onPress={this.toggleSearchBar}
 					/>
-					{(route.name === 'InventoryItems' || route.name === 'ArchiveItems') && <IconButton
-						icon='plus'
-						color='#FFF'
-						onPress={this.toggleAddItemModal}
-					/>}
+					{!isEmpty(this.state.stores) &&
+						(route.name === 'InventoryItems' || route.name === 'ArchiveItems') &&
+						<IconButton
+							icon='plus'
+							color='#FFF'
+							onPress={this.toggleAddItemModal}
+						/>}
 					<IconButton
 						icon='dots-vertical'
 						color='#FFF'
@@ -154,6 +156,9 @@ class StoreItemsPage extends PureComponent {
 		// console.debug('StoreItemsPage did update')
 		if (this.props.route.name === 'ArchiveItems') {
 			this.setHeader(this.props.route.params.stackNavigation)
+		}
+		else if (this.props.route.name === 'InventoryItems') {
+			this.setHeader(this.props.navigation)
 		}
 	}
 
@@ -495,12 +500,12 @@ class StoreItemsPage extends PureComponent {
 	 * 
 	 */
 	queryAllStores() {
+		console.debug('exec selectAllStores')
 		db.transaction(tx => {
 			tx.executeSql(
 				selectAllStores,
 				[],
 				(_, { rows: { _array } }) => {
-
 					if (_array.length > 0) {
 						this.setState({
 							stores: _array,
@@ -572,6 +577,7 @@ class StoreItemsPage extends PureComponent {
 				break;
 			case 'ArchiveItems':
 				this.querySelectAllItemJoinedStoresByItemType([itemType.ARCHIVE])
+				this.queryAllStores()
 				break;
 			default:
 				break;
@@ -796,7 +802,8 @@ class StoreItemsPage extends PureComponent {
 							<Divider />
 							<TextInput
 								placeholder={'Insert Price'}
-								value={this.state.itemPriceText}
+								value={this.state.itemPriceText.toString()}
+								keyboardType={'numeric'}
 								onChangeText={text => this.setState({ itemPriceText: text })}
 							/>
 							<Divider />
@@ -827,7 +834,8 @@ class StoreItemsPage extends PureComponent {
 								>
 									<TextInput
 										placeholder={'0.00'}
-										value={this.state.amountText}
+										keyboardType={'numeric'}
+										value={this.state.amountText.toString()}
 										onChangeText={text => this.setState({ amountText: text })}
 									/>
 								</View>
