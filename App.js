@@ -7,7 +7,8 @@ import { navigationRef } from './src/Utils/RootNavigation';
 import { enableScreens } from 'react-native-screens';
 import StoresPage from './src/Pages/StoresPage/StoresPage';
 import StoreItemsPage from './src/Pages/StoreItemsPage/StoreItemsPage'
-import SettingsPage from './src/Pages/SettingsPage/SettingsPage';
+import SettingsPage from './src/Pages/SettingsPage/SettingsPage'
+import AboutPage from './src/Pages/AboutPage/AboutPage'
 import {
 	db, enableFK, createItemsTable, createStoresTable, retrieveSettings,
 	insertInitSetting, createSettingsTable, createCategoriesTable,
@@ -174,10 +175,22 @@ function SettingsContainer() {
 	return (
 		<SettingsStackContainer.Navigator>
 			<SettingsStackContainer.Screen
-				name='SettingsStackContainer'
+				name='Settings'
 				component={SettingsPage}
 				options={{
 					headerTitle: 'Settings',
+					headerStyle: {
+						backgroundColor: '#5C00E7',
+					},
+					headerTintColor: '#FFF',
+
+				}}
+			/>
+			<SettingsStackContainer.Screen
+				name='About'
+				component={AboutPage}
+				options={{
+					headerTitle: 'About',
 					headerStyle: {
 						backgroundColor: '#5C00E7',
 					},

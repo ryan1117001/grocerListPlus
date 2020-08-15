@@ -110,14 +110,6 @@ export const updateItemArchiveDate = 'UPDATE items SET archiveDate=? WHERE itemI
 export const updateItemsOnUpdateStoreType = 'UPDATE items SET itemType=? WHERE storeId=? AND itemType=?;'
 
 // Items Join Stores
-/**
-    SELECT * FROM units
-        JOIN items ON
-            items.unitId = units.id
-    WHERE itemType=? AND storeId=?
-    
-    UNION
- */
 export const selectItemsByItemTypeAndStoreId = `
     SELECT * FROM items
         JOIN categories ON
