@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
 import { View } from 'react-native';
-import { List, Appbar } from 'react-native-paper';
+import { List, Appbar, Divider } from 'react-native-paper';
 import * as styles from './SettingsPage.styles';
 import {
 	db, deleteItems, dropItemsTable, dropStoreTable,
@@ -110,12 +110,17 @@ class SettingsPage extends PureComponent {
 			<View style={styles.SettingsPageWrapper}>
 				<List.Section>
 					{SETTINGS.map(item =>
-						<List.Item
+						<View
 							key={item.id}
-							title={item.description}
-							description={item.description}
-							onPress={item.function}
-						/>
+						>
+							<List.Item
+								key={item.id}
+								title={item.description}
+								description={item.description}
+								onPress={item.function}
+							/>
+							<Divider />
+						</View>
 					)}
 				</List.Section>
 			</View>
