@@ -18,7 +18,7 @@ class StoreListComponent extends PureComponent {
 
         const { store } = props
         this.state = {
-            id: store.id,
+            storeId: store.storeId,
             storeName: store.storeName,
             storeType: store.storeType,
             dateToGo: moment(store.dateToGo).locale('en-US').format('l'),
@@ -31,7 +31,7 @@ class StoreListComponent extends PureComponent {
         if (prevProps.store !== this.props.store) {
             const date = moment(this.props.store.dateToGo).locale('en-US').format('l')
             this.setState({
-                id: this.props.store.id,
+                storeId: this.props.store.storeId,
                 storeName: this.props.store.storeName,
                 dateToGo: date,
             });
@@ -43,14 +43,14 @@ class StoreListComponent extends PureComponent {
             case storeType.INUSE:
                 this.props.navigation.navigate('StoreItems', {
                     storeName: this.state.storeName,
-                    storeId: this.state.id,
+                    storeId: this.state.storeId,
                     dateToGo: this.state.dateToGo,
                 })
                 break;
             case storeType.ARCHIVE:
                 this.props.navigation.navigate('ArchiveStoreItems', {
                     storeName: this.state.storeName,
-                    storeId: this.state.id,
+                    storeId: this.state.storeId,
                     dateToGo: this.state.dateToGo,
                 })
                 break;
@@ -63,16 +63,16 @@ class StoreListComponent extends PureComponent {
     updateItemsOnUpdateStoreType = () => {
         var args = []
         if (this.state.storeType === storeType.ARCHIVE) {
-            args = [itemType.STORE, this.state.id, itemType.ARCHIVE]
+            args = [itemType.STORE, this.state.storeId, itemType.ARCHIVE]
         }
         else if (this.state.storeType === storeType.INUSE) {
-            args = [itemType.ARCHIVE, this.state.id, itemType.STORE]
+            args = [itemType.ARCHIVE, this.state.storeId, itemType.STORE]
         }
         db.transaction(tx => {
             console.debug('exec updateStoreArchiveDate')
             if (this.state.storeType === storeType.INUSE) {
                 var date = moment(new Date()).format('YYYY-MM-DD')
-                tx.executeSql(updateStoreArchiveDate, [date, this.state.id])
+                tx.executeSql(updateStoreArchiveDate, [date, this.state.storeId])
             }
             console.debug('exec updateItemsOnUpdateStoreType')
             tx.executeSql(updateItemsOnUpdateStoreType, args,
@@ -100,7 +100,7 @@ class StoreListComponent extends PureComponent {
             )
         },
             (error) => console.debug(error),
-            () => { this.props.toggleSnackBarFunc(this.state.id) }
+            () => { this.props.toggleSnackBarFunc(this.state.storeId) }
         )
     }
 
@@ -108,11 +108,11 @@ class StoreListComponent extends PureComponent {
         switch (this.state.storeType) {
             case storeType.ARCHIVE:
                 console.debug('onPressFunction ARCHIVE')
-                this.updateStoreType([storeType.INUSE, this.state.id])
+                this.updateStoreType([storeType.INUSE, this.state.storeId])
                 break
             case storeType.INUSE:
                 console.debug('onPressFunction INUSE')
-                this.updateStoreType([storeType.ARCHIVE, this.state.id])
+                this.updateStoreType([storeType.ARCHIVE, this.state.storeId])
                 break
             default:
                 console.debug('onPressFunction do nothing')
@@ -136,12 +136,12 @@ class StoreListComponent extends PureComponent {
             <Provider>
                 <View style={styles.StoreListComponentWrapper} >
                     <Surface
-                        key={this.state.id}
+                        key={this.state.storeId}
                         style={styles.Surface}>
                         <List.Item
                             onPress={this.navigateToStoreItems}
-                            onLongPress={() => this.props.toggleExtraStoreOptionsFunc(this.state.id)}
-                            key={this.state.id}
+                            onLongPress={() => this.props.toggleExtraStoreOptionsFunc(this.state.storeId)}
+                            key={this.state.storeId}
                             title={<Text style={styles.storeTitle}>{this.state.storeName}</Text>}
                             description={this.setDescription}
                             left={() =>
@@ -153,7 +153,7 @@ class StoreListComponent extends PureComponent {
                             right={() =>
                                 <IconButton
                                     icon='trash-can-outline'
-                                    onPress={() => this.props.showDeleteStoreConfirmationFunc(this.state.id)}
+                                    onPress={() => this.props.showDeleteStoreConfirmationFunc(this.state.storeId)}
                                 />
                             }
                         />

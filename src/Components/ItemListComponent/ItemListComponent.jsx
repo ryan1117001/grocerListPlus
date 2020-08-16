@@ -26,12 +26,12 @@ class ItemListComponent extends PureComponent {
 		// You can also log the error to an error reporting service
 	}
 
-	componentDidUpdate = (prevProps,prevState) => {
+	componentDidUpdate = (prevProps, prevState) => {
 		// console.log('ArchiveItemListComponent did update');
 		if (prevProps.item !== this.props.item) {
 			console.debug('ItemList update')
 			this.setState({
-				item : this.props.item
+				item: this.props.item
 			})
 		}
 	}
@@ -100,9 +100,9 @@ class ItemListComponent extends PureComponent {
 	setDescription = () => {
 
 		const { item } = this.state
-		console.debug(item)
-		var pricecheck = item.priceAmount
-		var amountcheck = item.amountOfUnit
+
+		var pricecheck = Number(item.priceAmount)
+		var amountcheck = Number(item.amountOfUnit)
 		var pricePerQtyCalc = 0
 		var pricePerAmountCalc = 0
 		if (isNull(pricecheck) || isUndefined(pricecheck) || pricecheck === '') {
@@ -111,7 +111,7 @@ class ItemListComponent extends PureComponent {
 		else {
 			pricecheck = pricecheck.toFixed(2)
 		}
-		if (isNull(amountcheck) || isUndefined(amountcheck) || amountcheck === '') {
+		if (isNull(amountcheck) || isUndefined(amountcheck) || amountcheck === '' || amountcheck === 0) {
 			amountcheck = 1
 		}
 		pricePerQtyCalc = (pricecheck / item.quantity).toFixed(2)
@@ -120,12 +120,11 @@ class ItemListComponent extends PureComponent {
 		var expirationDate = moment(item.expirationDate).locale('en-US').format('l')
 		var purchaseDate = moment(item.purchaseDate).locale('en-US').format('l')
 		var archiveDate = moment(item.archiveDate).locale('en-US').format('l')
-
 		switch (item.itemType) {
 			case itemType.STORE:
 				return (
 					<Text>
-						{item.category + ":" + item.subCategory}
+						{item.category}
 						{"\nPrice: $ " + pricecheck}
 						{"\nPrice Per Qty: $ " + pricePerQtyCalc}
 						{"\nPrice Per Amount (" + item.unitName + ") : $ " + pricePerAmountCalc}
@@ -134,7 +133,7 @@ class ItemListComponent extends PureComponent {
 			case itemType.INVENTORY:
 				return (
 					<Text>
-						{item.storeName + " | " + item.category + ":" + item.subCategory}
+						{item.storeName + " | " + item.category}
 						{"\nPrice: $ " + pricecheck}
 						{"\nPrice Per Qty: $ " + pricePerQtyCalc}
 						{"\nPrice Per Amount (" + item.unitName + ") : $ " + pricePerAmountCalc}
@@ -145,7 +144,7 @@ class ItemListComponent extends PureComponent {
 			case itemType.ARCHIVE:
 				return (
 					<Text>
-						{item.storeName + " | " + item.category + ":" + item.subCategory}
+						{item.storeName + " | " + item.category}
 						{"\nPrice: $ " + pricecheck}
 						{"\nPrice Per Qty: $ " + pricePerQtyCalc}
 						{"\nPrice Per Amount (" + item.unitName + ") : $ " + pricePerAmountCalc}
@@ -186,7 +185,7 @@ class ItemListComponent extends PureComponent {
 						<List.Item
 							title={<Text style={styles.itemTitle}>{item.itemName}</Text>}
 							onPress={() => { this.props.toggleEditItemModalFunc(item) }}
-							onLongPress={() => { this.props.toggleExtraOptionsFunc(item.itemId, item.itemType) }}
+							onLongPress={() => { this.props.toggleExtraOptionsFunc(item.itemId, item.itemType, item.storeId) }}
 							description={this.setDescription}
 							key={item.itemId}
 							left={this.setLeftButton}

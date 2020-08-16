@@ -92,6 +92,14 @@ function BottomTabNavigator() {
 					tabBarIcon: 'archive'
 				}}
 			/>
+			<BottomTabNav.Screen
+				name='Settings'
+				component={SettingsContainer}
+				options={{
+					title: 'Settings',
+					tabBarIcon: 'dots-horizontal-circle'
+				}}
+			/>
 		</BottomTabNav.Navigator>
 	)
 }

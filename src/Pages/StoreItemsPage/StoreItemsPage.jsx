@@ -15,13 +15,15 @@ import {
 	selectAllStores,
 	updateItemAttributes,
 	retrieveUnits,
-	retrieveCategories
+	retrieveCategories,
+	updateItemPurchaseDate,
+	updateItemArchiveDate
 } from '../../Utils/SQLConstants';
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 import { itemType, selectDateType, storeType } from '../../Utils/TypeConstants'
 import moment from 'moment'
 import { searchByItemName } from '../../Utils/SearchUtil'
-import { isUndefined, isNull, isEmpty } from 'lodash';
+import { isUndefined, isNull, isEmpty, find } from 'lodash';
 
 class StoreItemsPage extends PureComponent {
 	constructor(props) {
@@ -74,9 +76,9 @@ class StoreItemsPage extends PureComponent {
 			toggleSnackBar: false,
 
 			// Store related store
-
 			dateToGo: dateToGo,
 			storeId: storeId,
+			storeIdForExtraOptions: null,
 
 			//Items Ids to perform actions to
 			itemIdToDelete: null,
@@ -135,11 +137,6 @@ class StoreItemsPage extends PureComponent {
 							color='#FFF'
 							onPress={this.toggleAddItemModal}
 						/>}
-					<IconButton
-						icon='dots-vertical'
-						color='#FFF'
-						onPress={(() => navigation.navigate('Settings', {}))}
-					/>
 				</View>
 			)
 		})
@@ -227,9 +224,10 @@ class StoreItemsPage extends PureComponent {
 	 * 
 	 * @param {*} id 
 	 */
-	toggleExtraOptions = (id, itemType) => {
+	toggleExtraOptions = (itemId, itemType, storeId) => {
 		this.setState({
-			itemIdForExtraOptions: id ? id : this.state.itemIdForExtraOptions,
+			itemIdForExtraOptions: itemId ? itemId : this.state.itemIdForExtraOptions,
+			storeIdForExtraOptions: storeId ? storeId : this.state.storeIdForExtraOptions,
 			itemTypeForExtraOptions: itemType ? itemType : this.state.itemTypeForExtraOptions,
 			toggleExtraOptions: !this.state.toggleExtraOptions
 		})
@@ -251,7 +249,7 @@ class StoreItemsPage extends PureComponent {
 	toggleSnackBar = (id) => {
 		this.setState({
 			itemIdForSnackBar: id ? id : this.state.itemIdForSnackBar,
-			toggleSnackBar: true
+			toggleSnackBar: !this.state.toggleSnackBar
 		})
 	}
 
@@ -346,10 +344,21 @@ class StoreItemsPage extends PureComponent {
 					itemTypeArg = itemType.ARCHIVE
 					storeId = this.state.storePickerId
 					break;
+				case 'ArchiveStoreItems':
+					itemTypeArg = itemType.ARCHIVE
+					storeId = this.state.storeId
+					break;
 			}
 
 			db.transaction(tx => {
+				console.debug('exec insertStoreItem')
 				if (this.state.toggleAddItemModal) {
+					console.debug([
+						this.state.itemNameText, itemTypeArg, storeId,
+						this.state.categoriesPickerId, this.state.unitPickerId, this.state.experationDate,
+						this.state.itemQuantityCounter, this.state.amountText, this.state.itemPriceText,
+						this.state.purchaseDate, this.state.archiveDate
+					])
 					tx.executeSql(insertStoreItem,
 						[
 							this.state.itemNameText, itemTypeArg, storeId,
@@ -359,14 +368,13 @@ class StoreItemsPage extends PureComponent {
 						],
 						() => {
 							console.debug('Success')
-
 							this.toggleAddItemModal()
-
 						},
 						(error) => console.debug(error)
 					)
 				}
 				else if (this.state.toggleEditItemModal) {
+					console.debug('exec updateItemAttributes')
 					tx.executeSql(
 						updateItemAttributes,
 						[
@@ -419,22 +427,41 @@ class StoreItemsPage extends PureComponent {
 	 * 
 	 * @param {*} args 
 	 */
-	updateItemType = (args) => {
+	updateItemType = (type, itemId) => {
 		db.transaction(tx => {
-			console.debug('exec changeItemType: ' + this.state.itemIdForExtraOptions)
+			console.debug('exec changeItemType: ' + itemId)
 			tx.executeSql(
 				updateItemType,
-				args,
+				[type, itemId],
 				() => console.debug('changeItemType success'),
-				() => console.debug('changeItemType error')
+				(error) => console.debug(error)
 			)
+
+
+			if (type !== itemType.STORE) {
+				var date = moment(new Date()).format('YYYY-MM-DD')
+				var query = null
+				switch (type) {
+					case itemType.INVENTORY:
+						query = updateItemPurchaseDate
+						break
+					case itemType.ARCHIVE:
+						query = updateItemArchiveDate
+						break
+				}
+				tx.executeSql(
+					query, [date, itemId],
+					() => { },
+					(error) => { console.debug(error) }
+				)
+			}
 		},
 			(error) => console.debug(error),
 			() => {
 				console.debug('transaction success')
 				this.forceRefresh()
 				this.toggleExtraOptions()
-				this.toggleSnackBar(this.state.itemIdForExtraOptions)
+				this.toggleSnackBar(itemId)
 			})
 	}
 
@@ -510,7 +537,7 @@ class StoreItemsPage extends PureComponent {
 					if (_array.length > 0) {
 						this.setState({
 							stores: _array,
-							storePickerId: _array[0].id
+							storePickerId: _array[0].storeId
 						})
 					}
 				},
@@ -531,7 +558,7 @@ class StoreItemsPage extends PureComponent {
 					if (_array.length > 0) {
 						this.setState({
 							units: _array,
-							unitPickerId: _array[0].id
+							unitPickerId: _array[0].unitId
 						})
 					}
 				},
@@ -551,7 +578,7 @@ class StoreItemsPage extends PureComponent {
 					if (_array.length > 0) {
 						this.setState({
 							categories: _array,
-							categoriesPickerId: _array[0].id
+							categoriesPickerId: _array[0].categoryId
 						})
 					}
 				},
@@ -570,10 +597,10 @@ class StoreItemsPage extends PureComponent {
 		})
 		switch (route.name) {
 			case 'StoreItems':
-				this.queryAllStoreItems(storeType.INUSE)
+				this.queryAllStoreItems(itemType.STORE)
 				break;
 			case 'ArchiveStoreItems':
-				this.queryAllStoreItems(storeType.ARCHIVE)
+				this.queryAllStoreItems(itemType.ARCHIVE)
 				break;
 			case 'InventoryItems':
 				this.querySelectAllItemJoinedStoresByItemType([itemType.INVENTORY])
@@ -608,6 +635,15 @@ class StoreItemsPage extends PureComponent {
 		})
 	}
 
+	isStoreTypeArchive = (storeIdForExtraOptions) => {
+		const { stores } = this.state
+		var store = find(stores, function (s) { return s.storeId === storeIdForExtraOptions })
+		if (isNull(store) || isUndefined(store)) {
+			return false
+		}
+		return storeType.ARCHIVE !== store.storeType
+	}
+
 	/**
 	 * 
 	 */
@@ -616,7 +652,7 @@ class StoreItemsPage extends PureComponent {
 			return (
 				this.state.stores.map((item) => {
 					return (
-						<Picker.Item key={item.id} label={item.storeName} value={item.id} />
+						<Picker.Item key={item.storeId} label={item.storeName} value={item.storeId} />
 					)
 				})
 			)
@@ -631,7 +667,7 @@ class StoreItemsPage extends PureComponent {
 			return (
 				this.state.units.map((item) => {
 					return (
-						<Picker.Item key={item.id} label={item.unitName} value={item.id} />
+						<Picker.Item key={item.unitId} label={item.unitName} value={item.unitId} />
 					)
 				})
 			)
@@ -646,7 +682,7 @@ class StoreItemsPage extends PureComponent {
 			return (
 				this.state.categories.map((item) => {
 					return (
-						<Picker.Item key={item.id} label={item.category + ": " + item.subCategory} value={item.id} />
+						<Picker.Item key={item.categoryId} label={item.category} value={item.categoryId} />
 					)
 				})
 			)
@@ -914,24 +950,26 @@ class StoreItemsPage extends PureComponent {
 						<Dialog.Title>Extra Options</Dialog.Title>
 						<Dialog.Content>
 							<Divider />
-							{this.state.itemTypeForExtraOptions !== itemType.STORE && <List.Item
-								title={'Move To Store'}
-								onPress={() => {
-									this.updateItemType([itemType.STORE, this.state.itemIdForExtraOptions])
-								}}
-							/>}
+							{this.state.itemTypeForExtraOptions !== itemType.STORE &&
+								this.isStoreTypeArchive(this.state.storeIdForExtraOptions) &&
+								<List.Item
+									title={'Move To Store'}
+									onPress={() => {
+										this.updateItemType(itemType.STORE, this.state.itemIdForExtraOptions)
+									}}
+								/>}
 							<Divider />
 							{this.state.itemTypeForExtraOptions !== itemType.INVENTORY && <List.Item
 								title={'Move To Inventory'}
 								onPress={() => {
-									this.updateItemType([itemType.INVENTORY, this.state.itemIdForExtraOptions])
+									this.updateItemType(itemType.INVENTORY, this.state.itemIdForExtraOptions)
 								}}
 							/>}
 							<Divider />
 							{this.state.itemTypeForExtraOptions !== itemType.ARCHIVE && <List.Item
 								title={'Move to Archive'}
 								onPress={() => {
-									this.updateItemType([itemType.ARCHIVE, this.state.itemIdForExtraOptions])
+									this.updateItemType(itemType.ARCHIVE, this.state.itemIdForExtraOptions)
 								}}
 							/>}
 							<Divider />

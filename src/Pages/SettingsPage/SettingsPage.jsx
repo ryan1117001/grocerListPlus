@@ -1,6 +1,6 @@
 import React, { PureComponent } from 'react';
-import { View } from 'react-native';
-import { List, Appbar, Divider } from 'react-native-paper';
+import { ScrollView, View } from 'react-native';
+import { List, Divider, Portal, Dialog, Text, Button, Provider } from 'react-native-paper';
 import * as styles from './SettingsPage.styles';
 import {
 	db, deleteItems, dropItemsTable, dropStoreTable,
@@ -20,19 +20,20 @@ class SettingsPage extends PureComponent {
 
 		this.state = {
 			hasError: false,
+			toggleReinitializeDBModal: false
 		};
 		SETTINGS = [
 			{
-				id: 1,
+				tabId: 1,
 				title: 'About',
 				description: 'About the developer!',
 				function: () => this.navigateToAbout()
 			},
 			{
-				id: 2,
+				tabId: 2,
 				title: 'Reset',
 				description: 'Completely remove all data',
-				function: () => this.reinitailizeDB()
+				function: () => this.toggleReinitializeDBModal()
 			}
 		]
 	}
@@ -41,11 +42,15 @@ class SettingsPage extends PureComponent {
 
 	componentDidCatch(error, info) { }
 
-	getSnapshotBeforeUpdate = (prevProps, prevState) => { }
-
 	componentDidUpdate = () => { }
 
 	componentWillUnmount = () => { }
+
+	toggleReinitializeDBModal = () => {
+		this.setState({
+			toggleReinitializeDBModal: !this.state.toggleReinitializeDBModal
+		})
+	}
 
 	removeAllItems = () => {
 		console.debug('remove items')
@@ -61,7 +66,7 @@ class SettingsPage extends PureComponent {
 		this.props.navigation.navigate('About')
 	}
 
-	reinitailizeDB = () => {
+	reinitializeDB = () => {
 		console.debug('drop tables')
 		db.transaction((tx) => {
 			//Drop table
@@ -94,36 +99,44 @@ class SettingsPage extends PureComponent {
 		)
 	}
 
-	identifySQLQuery = (id) => {
-		switch (id) {
-			case 1:
-				this.removeAllStores();
-				break;
-			case 2:
-				this.reinitailizeDB();
-				break;
-		}
-	}
-
 	render() {
 		return (
-			<View style={styles.SettingsPageWrapper}>
-				<List.Section>
-					{SETTINGS.map(item =>
-						<View
-							key={item.id}
-						>
-							<List.Item
-								key={item.id}
-								title={item.description}
-								description={item.description}
-								onPress={item.function}
-							/>
-							<Divider />
-						</View>
-					)}
-				</List.Section>
-			</View>
+			<Provider>
+				<ScrollView style={styles.SettingsPageWrapper}>
+					<List.Section>
+						{SETTINGS.map(item =>
+							<View
+								key={item.tabId}
+							>
+								<List.Item
+									key={item.tabId}
+									title={item.description}
+									description={item.description}
+									onPress={item.function}
+								/>
+								<Divider />
+							</View>
+						)}
+					</List.Section>
+					{/* delete item confirmation */}
+					<Portal>
+						<Dialog
+							visible={this.state.toggleReinitializeDBModal}
+							onDismiss={this.toggleReinitializeDBModal}>
+							<Dialog.Title>Reinitialize The App</Dialog.Title>
+							<Dialog.Content>
+								<Text>
+									Reinitializing means all data will be lost, and everything will be reset.
+							</Text>
+							</Dialog.Content>
+							<Dialog.Actions>
+								<Button onPress={this.toggleReinitializeDBModal}>Cancel</Button>
+								<Button onPress={() => this.reinitializeDB()}>Confirm</Button>
+							</Dialog.Actions>
+						</Dialog>
+					</Portal>
+				</ScrollView>
+			</Provider>
 		);
 	}
 }

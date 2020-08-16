@@ -7,16 +7,16 @@ export const enableFK = 'PRAGMA foreign_keys = ON;'
 
 export const createSettingsTable = `
 CREATE TABLE IF NOT EXISTS settings (
-    id INTEGER PRIMARY KEY,
+    settingId INTEGER PRIMARY KEY,
     isInitiated INTEGER DEFAULT 0
 );`
 
 // create stores table
 export const createStoresTable = `
 CREATE TABLE IF NOT EXISTS stores ( 
-    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
+    storeId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, 
     storeName TEXT,
-    archiveDate DATETIME,
+    storeArchiveDate DATETIME,
     dateToGo DATETIME,
     storeType TEXT
 );`
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS stores (
 // create units table
 export const createUnitsTables = `
 CREATE TABLE IF NOT EXISTS units (
-    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    unitId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     unitName Text
 );`
 
@@ -34,29 +34,28 @@ CREATE TABLE IF NOT EXISTS items (
     itemId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     itemName TEXT,
     itemType TEXT,
-    amountOfUnit REAL,
-    priceAmount REAL,
+    amountOfUnit TEXT,
+    priceAmount TEXT,
     storeId INTEGER NOT NULL,
     categoryId INTEGER,
     unitId INTEGER,
-    archiveDate DATETIME,
+    itemArchiveDate DATETIME,
     purchaseDate DATETIME,
     expirationDate DATETIME,
     quantity INTEGER,
     FOREIGN KEY (unitId)
-        REFERENCES units(id),
+        REFERENCES units(unitId),
     FOREIGN KEY (categoryId)
-        REFERENCES categories(id),
+        REFERENCES categories(categoryId),
     FOREIGN KEY (storeId)
-        REFERENCES stores(id)
+        REFERENCES stores(storeId)
 );`
 
 // create categories table
 export const createCategoriesTable = `
 CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    categoryId INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     category TEXT,
-    subCategory TEXT,
     isDefault INTEGER
 );`
 
@@ -68,7 +67,7 @@ export const dropSettingsTable = 'DROP Table settings;'
 export const dropUnitsTable = 'DROP TABLE units;'
 
 // Settings
-export const insertInitSetting = 'INSERT INTO settings (id, isInitiated) values (?,?);'
+export const insertInitSetting = 'INSERT INTO settings (settingId, isInitiated) values (?,?);'
 export const retrieveSettings = 'SELECT * FROM settings'
 
 // Units
@@ -78,16 +77,16 @@ export const retrieveUnits = 'SELECT * FROM units;'
 export const retrieveCategories = 'SELECT * FROM categories;'
 
 // Stores
-export const insertStore = 'INSERT INTO stores (storeName, dateToGo, archiveDate, storeType) values (?,?,?,?);'
+export const insertStore = 'INSERT INTO stores (storeName, dateToGo,  storeArchiveDate, storeType) values (?,?,?,?);'
 export const deleteStores = 'DELETE FROM stores;'
-export const deleteStore = 'DELETE FROM stores WHERE id=?;'
+export const deleteStore = 'DELETE FROM stores WHERE storeId=?;'
 export const selectAllStores = 'SELECT * FROM stores;'
 export const selectStoresByStoreType = 'SELECT * FROM stores WHERE storeType=?;'
-export const selectStore = 'SELECT * FROM stores WHERE id=?;'
-export const updateDateToGo = 'UPDATE stores SET dateToGo=? WHERE id = ?;'
-export const updateStoreArchiveDate = 'UPDATE stores SET archiveDate=? WHERE id = ?;'
-export const updateStoreName = 'UPDATE Stores SET storeName=? WHERE id = ?;'
-export const updateStoreType = 'UPDATE Stores SET storeType=? WHERE id = ?;'
+export const selectStore = 'SELECT * FROM stores WHERE storeId=?;'
+export const updateDateToGo = 'UPDATE stores SET dateToGo=? WHERE storeId = ?;'
+export const updateStoreArchiveDate = 'UPDATE stores SET storeArchiveDate=? WHERE storeId = ?;'
+export const updateStoreName = 'UPDATE Stores SET storeName=? WHERE storeId = ?;'
+export const updateStoreType = 'UPDATE Stores SET storeType=? WHERE storeId = ?;'
 
 // Items
 export const deleteItems = 'DELETE FROM items;'
@@ -99,35 +98,35 @@ export const insertStoreItem = `
         (itemName, itemType, storeId, 
         categoryId, unitId, expirationDate, 
         quantity, amountOfUnit, priceAmount, 
-        purchaseDate, archiveDate) 
+        purchaseDate, itemArchiveDate) 
         values 
         (?,?,?,?,?,?,?,?,?,?,?);`
-export const updateItemAttributes = 'UPDATE items SET itemName=?, categoryId=?, unitId=?, expirationDate=?, quantity=?, amountOfUnit=?, priceAmount=?, purchaseDate=?, archiveDate=? WHERE itemId=?;'
+export const updateItemAttributes = 'UPDATE items SET itemName=?, categoryId=?, unitId=?, expirationDate=?, quantity=?, amountOfUnit=?, priceAmount=?, purchaseDate=?, itemArchiveDate=? WHERE itemId=?;'
 export const insertInventoryItem = 'INSERT INTO items (itemName, itemType, storeId, purchaseDate) values (?,?,?,?);'
 export const updateItemType = 'UPDATE items SET itemType=? WHERE itemId=?;'
 export const updateItemPurchaseDate = 'UPDATE items SET purchaseDate=? WHERE itemId=?;'
-export const updateItemArchiveDate = 'UPDATE items SET archiveDate=? WHERE itemId=?;'
+export const updateItemArchiveDate = 'UPDATE items SET itemArchiveDate=? WHERE itemId=?;'
 export const updateItemsOnUpdateStoreType = 'UPDATE items SET itemType=? WHERE storeId=? AND itemType=?;'
 
 // Items Join Stores
 export const selectItemsByItemTypeAndStoreId = `
     SELECT * FROM items
         JOIN stores ON 
-            items.storeId = stores.id 
+            items.storeId = stores.storeId 
         JOIN categories ON
-            items.categoryId = categories.id
+            items.categoryId = categories.categoryId
         JOIN units ON
-            items.unitId = units.id
-    WHERE itemType=? AND storeId=?;
+            items.unitId = units.unitId
+    WHERE itemType=? AND items.storeId=?;
 `
 export const selectAllItemJoinedStoresByItemType = `
     SELECT * FROM items 
         JOIN stores ON 
-            items.storeId = stores.id 
+            items.storeId = stores.storeId 
         JOIN categories ON
-            items.categoryId = categories.id
+            items.categoryId = categories.categoryId
         JOIN units ON
-            items.unitId = units.id
+            items.unitId = units.unitId
     WHERE itemType = ?;
 `
 
@@ -150,13 +149,14 @@ export const insertDefaultUnits = `
 
 // Default Categories
 export const insertDefaultCategories = `
-    INSERT INTO categories (category, subCategory, isDefault) values
-    ("Uncategorized","",1),
-    ("Groceries","",1),
-    ("Groceries","Produce",1),
-    ("Groceries","Meat",1),
-    ("Groceries","Diary",1),
-    ("Groceries","Packaged Goods",1),
-    ("Groceries","Pantry Goods",1),
-    ("Groceries","Frozen Goods",1)    
+    INSERT INTO categories (category, isDefault) values
+    ("Uncategorized", 1),
+    ("Baked Goods", 1),
+    ("Canned Goods", 1),
+    ("Diary", 1),
+    ("Frozen Goods", 1),    
+    ("Meat", 1),
+    ("Packaged Goods", 1),
+    ("Pantry Goods", 1),
+    ("Produce", 1)
 `

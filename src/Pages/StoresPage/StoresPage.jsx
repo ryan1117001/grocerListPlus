@@ -91,11 +91,6 @@ class StoresPage extends PureComponent {
 						color='#FFF'
 						onPress={this.toggleShowAddStoreModal}
 					/>
-					<IconButton
-						icon='dots-vertical'
-						color='#FFF'
-						onPress={(() => navigation.navigate('Settings', {}))}
-					/>
 				</View>
 			)
 		})
@@ -139,7 +134,7 @@ class StoresPage extends PureComponent {
 	toggleSnackBar = (id) => {
 		this.setState({
 			storeIdToUndo: id ? id : this.state.storeIdToUndo,
-			toggleSnackBar: true
+			toggleSnackBar: !this.state.toggleSnackBar
 		})
 	}
 
@@ -261,7 +256,7 @@ class StoresPage extends PureComponent {
 		var args = []
 		switch (this.props.route.name) {
 			case 'Stores':
-				args = [this.state.storeNameText, date, null, storeType.INUSE]
+				args = [this.state.storeNameText, date, date, storeType.INUSE]
 				break
 			case 'ArchiveStores':
 				args = [this.state.storeNameText, date, date, storeType.ARCHIVE]
@@ -333,7 +328,7 @@ class StoresPage extends PureComponent {
 					onRefresh={this.forceRefresh}
 					refreshing={this.state.toggleRefreshing}
 					data={this.state.toggleSearch ? this.state.searchResults : this.state.stores}
-					keyExtractor={(item) => item.id.toString()}
+					keyExtractor={(item) => item.storeId.toString()}
 					renderItem={({ item, index, seperator }) => (
 						<StoreListComponent
 							store={item}
