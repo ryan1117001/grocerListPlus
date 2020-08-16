@@ -12,7 +12,6 @@ class ItemListComponent extends PureComponent {
 	constructor(props) {
 		super(props);
 
-		// console.debug(props)
 		const { item } = props
 		this.state = {
 			item: item,
@@ -35,8 +34,6 @@ class ItemListComponent extends PureComponent {
 				item : this.props.item
 			})
 		}
-		console.debug(this.props.item)
-
 	}
 
 	componentWillUnmount = () => {

@@ -18,7 +18,7 @@ import {
 	retrieveCategories
 } from '../../Utils/SQLConstants';
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
-import { itemType, selectDateType } from '../../Utils/TypeConstants'
+import { itemType, selectDateType, storeType } from '../../Utils/TypeConstants'
 import moment from 'moment'
 import { searchByItemName } from '../../Utils/SearchUtil'
 import { isUndefined, isNull, isEmpty } from 'lodash';
@@ -85,7 +85,6 @@ class StoreItemsPage extends PureComponent {
 			itemIdForExtraOptions: null,
 			itemTypeForExtraOptions: null,
 
-
 			// Nav Settings
 			pageTitle: this.setPageTitle(storeName),
 		};
@@ -98,6 +97,8 @@ class StoreItemsPage extends PureComponent {
 		const { route } = this.props
 		switch (route.name) {
 			case 'StoreItems':
+				return storeName
+			case 'ArchiveStoreItems':
 				return storeName
 			case 'InventoryItems':
 				return 'Inventory'
@@ -459,12 +460,12 @@ class StoreItemsPage extends PureComponent {
 	/**
 	 * 
 	 */
-	queryAllStoreItems = () => {
+	queryAllStoreItems = (args) => {
 		console.debug('exec selectItemsByItemTypeAndStoreId')
 		db.transaction(tx => {
 			tx.executeSql(
 				selectItemsByItemTypeAndStoreId,
-				[itemType.STORE, this.state.storeId],
+				[args, this.state.storeId],
 				(_, { rows: { _array } }) => {
 					this.setState({
 						storeItemData: _array
@@ -569,7 +570,10 @@ class StoreItemsPage extends PureComponent {
 		})
 		switch (route.name) {
 			case 'StoreItems':
-				this.queryAllStoreItems()
+				this.queryAllStoreItems(storeType.INUSE)
+				break;
+			case 'ArchiveStoreItems':
+				this.queryAllStoreItems(storeType.ARCHIVE)
 				break;
 			case 'InventoryItems':
 				this.querySelectAllItemJoinedStoresByItemType([itemType.INVENTORY])
@@ -669,17 +673,17 @@ class StoreItemsPage extends PureComponent {
 					onSubmitEditing={this.searchForItem}
 				/>}
 				{/* Store name and dates */}
-				{route.name === 'StoreItems' && <View style={styles.TitleRowWrapper}>
+				{(route.name === 'StoreItems' || route.name === 'ArchiveStoreItems') && <View style={styles.TitleRowWrapper}>
 					<Button
 						onPress={this.toggleAddItemModal}
 					>
 						Add An Item
            				</Button>
-					<Button
+					{route.name === 'StoreItems' && <Button
 						onPress={this.toggleCalendarModal}
 					>
 						Going on: {this.state.dateToGo}
-					</Button>
+					</Button>}
 				</View>}
 				{/* Showing data */}
 				<FlatList

@@ -109,6 +109,15 @@ function ArchiveContainer() {
 					}
 				}}
 			/>
+			<ArchiveStackContainer.Screen
+				name='ArchiveStoreItems'
+				component={StoreItemsPage}
+				options={{
+					headerStyle: {
+						backgroundColor: '#5C00E7',
+					}
+				}}
+			/>
 		</ArchiveStackContainer.Navigator>
 	)
 }

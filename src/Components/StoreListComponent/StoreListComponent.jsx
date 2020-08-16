@@ -39,11 +39,24 @@ class StoreListComponent extends PureComponent {
     }
 
     navigateToStoreItems = () => {
-        this.props.navigation.navigate('StoreItems', {
-            storeName: this.state.storeName,
-            storeId: this.state.id,
-            dateToGo: this.state.dateToGo,
-        })
+        switch (this.state.storeType) {
+            case storeType.INUSE:
+                this.props.navigation.navigate('StoreItems', {
+                    storeName: this.state.storeName,
+                    storeId: this.state.id,
+                    dateToGo: this.state.dateToGo,
+                })
+                break;
+            case storeType.ARCHIVE:
+                this.props.navigation.navigate('ArchiveStoreItems', {
+                    storeName: this.state.storeName,
+                    storeId: this.state.id,
+                    dateToGo: this.state.dateToGo,
+                })
+                break;
+            default:
+                break;
+        }
     }
 
     // TODO: when store is updated, items need to move from store to inventory
@@ -126,7 +139,7 @@ class StoreListComponent extends PureComponent {
                         key={this.state.id}
                         style={styles.Surface}>
                         <List.Item
-                            onPress={this.state.storeType === storeType.INUSE ? this.navigateToStoreItems : () => { }}
+                            onPress={this.navigateToStoreItems}
                             onLongPress={() => this.props.toggleExtraStoreOptionsFunc(this.state.id)}
                             key={this.state.id}
                             title={<Text style={styles.storeTitle}>{this.state.storeName}</Text>}

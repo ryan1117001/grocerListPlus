@@ -112,6 +112,8 @@ export const updateItemsOnUpdateStoreType = 'UPDATE items SET itemType=? WHERE s
 // Items Join Stores
 export const selectItemsByItemTypeAndStoreId = `
     SELECT * FROM items
+        JOIN stores ON 
+            items.storeId = stores.id 
         JOIN categories ON
             items.categoryId = categories.id
         JOIN units ON
