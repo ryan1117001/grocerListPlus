@@ -7,6 +7,7 @@ import {
 } from '../../Utils/SQLConstants';
 import PropTypes from 'prop-types';
 import moment from 'moment'
+import "moment/min/locales"
 import { storeType, itemType } from '../../Utils/TypeConstants';
 
 

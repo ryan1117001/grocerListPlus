@@ -8,6 +8,7 @@ import {
 } from '../../Utils/SQLConstants';
 import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
 import moment from 'moment'
+import "moment/min/locales"
 import { storeType } from '../../Utils/TypeConstants';
 import { searchByStoreName } from '../../Utils/SearchUtil'
 

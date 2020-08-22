@@ -22,6 +22,7 @@ import {
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
 import { itemType, selectDateType, storeType } from '../../Utils/TypeConstants'
 import moment from 'moment'
+import "moment/min/locales"
 import { searchByItemName } from '../../Utils/SearchUtil'
 import { isUndefined, isNull, isEmpty, find } from 'lodash';
 

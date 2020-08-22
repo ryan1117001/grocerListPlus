@@ -6,6 +6,7 @@ import { itemType } from '../../Utils/TypeConstants'
 import PropTypes from 'prop-types';
 import { db, updateItemType, updateItemPurchaseDate, updateItemArchiveDate } from '../../Utils/SQLConstants'
 import moment from 'moment'
+import "moment/min/locales"
 import { isNull, isUndefined } from 'lodash';
 
 class ItemListComponent extends PureComponent {
