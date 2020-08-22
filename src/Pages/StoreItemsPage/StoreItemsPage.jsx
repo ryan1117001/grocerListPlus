@@ -7,7 +7,6 @@ import {
 	Modal, Provider, Portal, Snackbar, List, Divider,
 	Button, Dialog, IconButton, Text, Searchbar
 } from 'react-native-paper'
-import { Calendar } from 'react-native-calendars'
 import {
 	db, deleteItem, insertStoreItem, updateItemType,
 	updateDateToGo, selectItemsByItemTypeAndStoreId,
@@ -20,15 +19,20 @@ import {
 	updateItemArchiveDate
 } from '../../Utils/SQLConstants';
 import ItemListComponent from '../../Components/ItemListComponent/ItemListComponent'
-import { itemType, selectDateType, storeType } from '../../Utils/TypeConstants'
-import moment from 'moment'
-import "moment/min/locales"
+import { itemType, selectDateType, storeType, datePickerEventType } from '../../Utils/TypeConstants'
+import dayjs from 'dayjs'
+import localizedFormat from 'dayjs/plugin/localizedFormat'
+import advancedFormat from 'dayjs/plugin/advancedFormat'
 import { searchByItemName } from '../../Utils/SearchUtil'
 import { isUndefined, isNull, isEmpty, find } from 'lodash';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 class StoreItemsPage extends PureComponent {
 	constructor(props) {
 		super(props);
+
+		dayjs.extend(localizedFormat)
+		dayjs.extend(advancedFormat)
 
 		const { params } = props.route
 
@@ -49,7 +53,7 @@ class StoreItemsPage extends PureComponent {
 
 			// Info changes
 			searchText: '',
-			selectedDate: moment(new Date()).locale('en-US').format('l'),
+			selectedDate: isNull(dateToGo) ? Number(dayjs().format('x')) : Number(dayjs(dateToGo).format('x')),
 			selectDateComponentUser: '',
 
 			// Add / Edit Items
@@ -60,9 +64,9 @@ class StoreItemsPage extends PureComponent {
 			unitPickerId: 0,
 			categoriesPickerId: 0,
 			itemQuantityCounter: 1,
-			experationDate: moment(new Date()).locale('en-US').format('l'),
-			purchaseDate: moment(new Date()).locale('en-US').format('l'),
-			archiveDate: moment(new Date()).locale('en-US').format('l'),
+			experationDate: dayjs().format('L'),
+			purchaseDate: dayjs().format('L'),
+			itemArchiveDate: dayjs().format('L'),
 
 			// Toggle
 			toggleAddItemModal: false,
@@ -205,9 +209,9 @@ class StoreItemsPage extends PureComponent {
 				itemNameText: item.itemName ? item.itemName : '',
 				itemPriceText: item ? item.priceAmount : '',
 				amountText: item ? item.amountOfUnit : '',
-				experationDate: item || !isNull(item.experationDate) ? item.expirationDate : moment(new Date()).locale('en-US').format('l'),
-				purchaseDate: item || !isNull(item.purchaseDate) ? item.purchaseDate : moment(new Date()).locale('en-US').format('l'),
-				archiveDate: item || !isNull(item.archiveDate) ? item.archiveDate : moment(new Date()).locale('en-US').format('l'),
+				experationDate: item || !isNull(item.experationDate) ? item.expirationDate : dayjs().format('L'),
+				purchaseDate: item || !isNull(item.purchaseDate) ? item.purchaseDate : dayjs().format('L'),
+				itemArchiveDate: item || !isNull(item.itemArchiveDate) ? item.itemArchiveDate : dayjs().format('L'),
 				categoriesPickerId: item ? item.categoryId : 0,
 				unitPickerId: item ? item.unitId : 0,
 				itemQuantityCounter: item.quantity ? item.quantity : 1,
@@ -282,25 +286,28 @@ class StoreItemsPage extends PureComponent {
 	 * 
 	 * @param {*} day 
 	 */
-	selectDate = (day) => {
-		var date = moment(day.dateString)
-		db.transaction(tx => {
-			console.debug('exec selectDate ' + day.dateString + " " + this.state.storeId)
+	selectDate = (event, selectedDate) => {
+		if (event.type === datePickerEventType.SET) {
+			var date = dayjs(selectedDate)
 			if (this.state.toggleAddItemModal || this.state.toggleEditItemModal) {
+				console.debug('exec dateComponentUser')
 				switch (this.state.selectDateComponentUser) {
 					case selectDateType.EXPIRATION:
 						this.setState({
-							experationDate: date.locale('en-US').format('l')
+							experationDate: date.format('L'),
+							toggleCalendarModal: false
 						})
 						break;
 					case selectDateType.PURCHASE:
 						this.setState({
-							purchaseDate: date.locale('en-US').format('l')
+							purchaseDate: date.format('L'),
+							toggleCalendarModal: false
 						})
 						break;
 					case selectDateType.ARCHIVE:
 						this.setState({
-							archiveDate: date.locale('en-US').format('l')
+							itemArchiveDate: date.format('L'),
+							toggleCalendarModal: false
 						})
 						break;
 					default:
@@ -308,19 +315,29 @@ class StoreItemsPage extends PureComponent {
 				}
 			}
 			else {
-				tx.executeSql(updateDateToGo,
-					[date.format('YYYY-MM-DD'), this.state.storeId],
-					() => {
-						console.debug('Success')
-						this.setState({
-							dateToGo: date.locale('en-US').format('l')
-						})
-					},
-					() => console.debug('Error')
-				)
+				db.transaction(tx => {
+					console.debug('exec updateDateToGo')
+					tx.executeSql(updateDateToGo,
+						[date.format('YYYY-MM-DD'), this.state.storeId],
+						() => {
+							console.debug('Success')
+							this.toggleCalendarModal()
+							this.setState({
+								dateToGo: date.format('L'),
+							})
+						},
+						() => console.debug('Error')
+					)
+				})
 			}
-		})
-		this.toggleCalendarModal()
+		}
+		else if (event.type === datePickerEventType.DISMISSED) {
+			console.debug('exec dismiss calandar')
+			this.setState({
+				toggleCalendarModal: false
+			})
+		}
+
 	}
 
 	/**
@@ -354,22 +371,16 @@ class StoreItemsPage extends PureComponent {
 			db.transaction(tx => {
 				console.debug('exec insertStoreItem')
 				if (this.state.toggleAddItemModal) {
-					console.debug([
-						this.state.itemNameText, itemTypeArg, storeId,
-						this.state.categoriesPickerId, this.state.unitPickerId, this.state.experationDate,
-						this.state.itemQuantityCounter, this.state.amountText, this.state.itemPriceText,
-						this.state.purchaseDate, this.state.archiveDate
-					])
 					tx.executeSql(insertStoreItem,
 						[
 							this.state.itemNameText, itemTypeArg, storeId,
-							this.state.categoriesPickerId, this.state.unitPickerId, this.state.experationDate,
+							this.state.categoriesPickerId, this.state.unitPickerId, dayjs(this.state.experationDate).format('YYYY-MM-DD'),
 							this.state.itemQuantityCounter, this.state.amountText, this.state.itemPriceText,
-							this.state.purchaseDate, this.state.archiveDate
+							dayjs(this.state.purchaseDate).format('YYYY-MM-DD'), dayjs(this.state.itemArchiveDate).format('YYYY-MM-DD')
 						],
 						() => {
-							console.debug('Success')
 							this.toggleAddItemModal()
+							this.forceRefresh()
 						},
 						(error) => console.debug(error)
 					)
@@ -380,12 +391,14 @@ class StoreItemsPage extends PureComponent {
 						updateItemAttributes,
 						[
 							this.state.itemNameText, this.state.categoriesPickerId,
-							this.state.unitPickerId, this.state.experationDate, this.state.itemQuantityCounter,
-							this.state.amountText, this.state.itemPriceText, this.state.purchaseDate,
-							this.state.archiveDate, this.state.itemIdToEdit
+							this.state.unitPickerId, dayjs(this.state.experationDate).format('YYYY-MM-DD'), this.state.itemQuantityCounter,
+							this.state.amountText, this.state.itemPriceText, dayjs(this.state.purchaseDate).format('YYYY-MM-DD'),
+							dayjs(this.state.itemArchiveDate).format('YYYY-MM-DD'), this.state.itemIdToEdit
 						],
 						() => {
+							console.debug('sort of worked')
 							this.toggleEditItemModal()
+							this.forceRefresh()
 						},
 						(error) => { console.debug(error) }
 					)
@@ -395,9 +408,8 @@ class StoreItemsPage extends PureComponent {
 					console.debug(error)
 					this.clearInputs()
 				},
-				() => {
-					this.forceRefresh()
-				})
+				() => { }
+			)
 		}
 	}
 
@@ -440,7 +452,7 @@ class StoreItemsPage extends PureComponent {
 
 
 			if (type !== itemType.STORE) {
-				var date = moment(new Date()).format('YYYY-MM-DD')
+				var date = dayjs().format('YYYY-MM-DD')
 				var query = null
 				switch (type) {
 					case itemType.INVENTORY:
@@ -627,9 +639,9 @@ class StoreItemsPage extends PureComponent {
 			itemNameText: '',
 			itemPriceText: '',
 			amountText: '',
-			experationDate: moment(new Date()).locale('en-US').format('l'),
-			purchaseDate: moment(new Date()).locale('en-US').format('l'),
-			archiveDate: moment(new Date()).locale('en-US').format('l'),
+			experationDate: dayjs().format('L'),
+			purchaseDate: dayjs().format('L'),
+			itemArchiveDate: dayjs().format('L'),
 			categoriesPickerId: 0,
 			unitPickerId: 0,
 			itemQuantityCounter: 1
@@ -801,11 +813,12 @@ class StoreItemsPage extends PureComponent {
 								onPress={() => {
 									this.toggleCalendarModal()
 									this.setState({
-										selectDateComponentUser: selectDateType.EXPIRATION
+										selectDateComponentUser: selectDateType.EXPIRATION,
+										selectedDate: Number(dayjs(this.state.experationDate).format('x'))
 									})
 								}}
 							>
-								Expires on {this.state.experationDate}
+								Expires on {dayjs(this.state.experationDate).format('L')}
 							</Button>
 							{(this.props.route.name === "InventoryItems" || this.props.route.name === "ArchiveItems") && <View>
 								<Divider />
@@ -813,11 +826,12 @@ class StoreItemsPage extends PureComponent {
 									onPress={() => {
 										this.toggleCalendarModal()
 										this.setState({
-											selectDateComponentUser: selectDateType.PURCHASE
+											selectDateComponentUser: selectDateType.PURCHASE,
+											selectedDate: Number(dayjs(this.state.purchaseDate).format('x'))
 										})
 									}}
 								>
-									Purchased on {this.state.purchaseDate}
+									Purchased on {dayjs(this.state.purchaseDate).format('L')}
 								</Button>
 								<Divider />
 							</View>}
@@ -826,11 +840,12 @@ class StoreItemsPage extends PureComponent {
 									onPress={() => {
 										this.toggleCalendarModal()
 										this.setState({
-											selectDateComponentUser: selectDateType.ARCHIVE
+											selectDateComponentUser: selectDateType.ARCHIVE,
+											selectedDate: Number(dayjs(this.state.itemArchiveDate).format('x'))
 										})
 									}}
 								>
-									Archived on {this.state.archiveDate}
+									Archived on {dayjs(this.state.itemArchiveDate).format('L')}
 								</Button>
 								<Divider />
 							</View>}
@@ -905,13 +920,12 @@ class StoreItemsPage extends PureComponent {
 								{CategoryPickerValueList}
 							</Picker>
 							<Divider />
-							{this.props.route.name !== 'StoreItems' && <View>
+							{this.props.route.name === 'InventoryItems' && <View>
 								<Picker
 									selectedValue={this.state.storePickerId}
 									onValueChange={(itemValue, itemIndex) => {
 										this.setState({ storePickerId: itemValue })
-									}
-									}
+									}}
 									mode='dropdown'
 								>
 									{StorePickerValueList}
@@ -979,31 +993,13 @@ class StoreItemsPage extends PureComponent {
 				</Portal>
 
 				<Portal>
-					<Modal visible={this.state.toggleCalendarModal} onDismiss={this.toggleCalendarModal}>
-						<Calendar
-							style={styles.CalendarWrapper}
-							theme={{
-								selectedDayBackgroundColor: '#00adf5',
-								todayTextColor: '#00adf5'
-							}}
-							// Handler which gets executed on day press. Default = undefined
-							onDayPress={this.selectDate}
-							// Month format in calendar title. Formatting values: http://arshaw.com/xdate/#Formatting
-							monthFormat={'MMM yyyy'}
-							// Handler which gets executed when visible month changes in calendar. Default = undefined
-							onMonthChange={(month) => { console.debug('month changed', month) }}
-							// If firstDay=1 week starts from Monday. Note that dayNames and dayNamesShort should still start from Sunday.
-							firstDay={1}
-							// Hide day names. Default = false
-							hideDayNames={false}
-							// Show week numbers to the left. Default = false
-							showWeekNumbers={false}
-							// Handler which gets executed when press arrow icon left. It receive a callback can go back month
-							onPressArrowLeft={substractMonth => substractMonth()}
-							// Handler which gets executed when press arrow icon right. It receive a callback can go next month
-							onPressArrowRight={addMonth => addMonth()}
-						/>
-					</Modal>
+					{this.state.toggleCalendarModal && <DateTimePicker
+						testID="dateTimePicker"
+						value={this.state.selectedDate}
+						mode={'date'}
+						display="calendar"
+						onChange={(event, selectedDate) => { this.selectDate(event, selectedDate) }}
+					/>}
 				</Portal>
 			</Provider>
 

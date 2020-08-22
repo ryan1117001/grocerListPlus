@@ -226,7 +226,6 @@ function initDB() {
 			retrieveSettings, [],
 			(tx, resultSet) => {
 				console.debug('settings found')
-				console.debug(resultSet.rows._array)
 			},
 			(error) => {
 				console.debug('settings does not exist')

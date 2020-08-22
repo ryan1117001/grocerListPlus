@@ -7,11 +7,9 @@ import {
 	updateStoreName
 } from '../../Utils/SQLConstants';
 import StoreListComponent from '../../Components/StoreListComponent/StoreListComponent'
-import moment from 'moment'
-import "moment/min/locales"
 import { storeType } from '../../Utils/TypeConstants';
 import { searchByStoreName } from '../../Utils/SearchUtil'
-
+import dayjs from 'dayjs'
 class StoresPage extends PureComponent {
 
 	/**
@@ -253,7 +251,7 @@ class StoresPage extends PureComponent {
 	}
 
 	insertStore = () => {
-		var date = moment(new Date()).format('YYYY-MM-DD')
+		var date = dayjs().format('YYYY-MM-DD')
 		var args = []
 		switch (this.props.route.name) {
 			case 'Stores':
@@ -263,6 +261,7 @@ class StoresPage extends PureComponent {
 				args = [this.state.storeNameText, date, date, storeType.ARCHIVE]
 				break
 		}
+		console.debug()
 		db.transaction(tx => {
 			tx.executeSql(
 				insertStore,
@@ -275,9 +274,7 @@ class StoresPage extends PureComponent {
 			)
 		},
 			(error) => console.debug(error),
-			() => {
-				// console.debug('Success') 
-			}
+			() => {	}
 		)
 	}
 

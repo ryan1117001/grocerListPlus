@@ -15,3 +15,8 @@ export const selectDateType = {
 	PURCHASE: 'purchase',
 	ARCHIVE: 'archive'
 }
+
+export const datePickerEventType = {
+	DISMISSED: 'dismissed',
+	SET: 'set'
+}

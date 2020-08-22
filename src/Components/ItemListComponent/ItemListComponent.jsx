@@ -5,14 +5,14 @@ import { styles } from './ItemListComponent.styles';
 import { itemType } from '../../Utils/TypeConstants'
 import PropTypes from 'prop-types';
 import { db, updateItemType, updateItemPurchaseDate, updateItemArchiveDate } from '../../Utils/SQLConstants'
-import moment from 'moment'
-import "moment/min/locales"
 import { isNull, isUndefined } from 'lodash';
+import dayjs from 'dayjs';
+import localizedFormat from 'dayjs/plugin/localizedFormat'
 
 class ItemListComponent extends PureComponent {
 	constructor(props) {
 		super(props);
-
+		dayjs.extend(localizedFormat)
 		const { item } = props
 		this.state = {
 			item: item,
@@ -69,7 +69,7 @@ class ItemListComponent extends PureComponent {
 			)
 			if (item.itemType === itemType.STORE) {
 				console.debug('exec updateItemPurchaseDate')
-				var date = moment(new Date()).format('YYYY-MM-DD')
+				var date = dayjs().format('YYYY-MM-DD')
 				tx.executeSql(
 					updateItemPurchaseDate, [date, item.itemId],
 					() => {
@@ -80,7 +80,7 @@ class ItemListComponent extends PureComponent {
 			}
 			else if (item.itemType === itemType.INVENTORY) {
 				console.debug('exec updateArchiveDate')
-				var date = moment(new Date()).format('YYYY-MM-DD')
+				var date = dayjs().format('YYYY-MM-DD')
 				tx.executeSql(
 					updateItemArchiveDate,
 					[date, item.itemId],
@@ -118,9 +118,9 @@ class ItemListComponent extends PureComponent {
 		pricePerQtyCalc = (pricecheck / item.quantity).toFixed(2)
 		pricePerAmountCalc = (pricecheck / amountcheck).toFixed(2)
 
-		var expirationDate = moment(item.expirationDate).locale('en-US').format('l')
-		var purchaseDate = moment(item.purchaseDate).locale('en-US').format('l')
-		var archiveDate = moment(item.archiveDate).locale('en-US').format('l')
+		var expirationDate = dayjs(item.expirationDate).format('L')
+		var purchaseDate = dayjs(item.purchaseDate).format('L')
+		var itemArchiveDate = dayjs(item.itemArchiveDate).format('L')
 		switch (item.itemType) {
 			case itemType.STORE:
 				return (
@@ -138,8 +138,8 @@ class ItemListComponent extends PureComponent {
 						{"\nPrice: $ " + pricecheck}
 						{"\nPrice Per Qty: $ " + pricePerQtyCalc}
 						{"\nPrice Per Amount (" + item.unitName + ") : $ " + pricePerAmountCalc}
-						{"\nPurchased On: " + purchaseDate}
 						{"\nExpires On: " + expirationDate}
+						{"\nPurchased On: " + purchaseDate}
 					</Text>
 				)
 			case itemType.ARCHIVE:
@@ -149,9 +149,9 @@ class ItemListComponent extends PureComponent {
 						{"\nPrice: $ " + pricecheck}
 						{"\nPrice Per Qty: $ " + pricePerQtyCalc}
 						{"\nPrice Per Amount (" + item.unitName + ") : $ " + pricePerAmountCalc}
-						{"\nPurchased On: " + purchaseDate}
 						{"\nExpires On: " + expirationDate}
-						{"\nArchived On: " + archiveDate}
+						{"\nPurchased On: " + purchaseDate}
+						{"\nArchived On: " + itemArchiveDate}
 					</Text>
 				)
 			default:

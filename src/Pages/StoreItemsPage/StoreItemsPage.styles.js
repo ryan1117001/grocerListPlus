@@ -11,7 +11,7 @@ export const styles = StyleSheet.create({
         flexDirection: 'row'
     },
     CalendarWrapper: {
-        marginHorizontal: 20
+        marginHorizontal: 10
     },
     TitleRowWrapper: {
         flexDirection: 'row',

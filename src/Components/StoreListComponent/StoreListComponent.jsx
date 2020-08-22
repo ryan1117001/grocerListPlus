@@ -6,31 +6,30 @@ import {
     db, updateItemsOnUpdateStoreType, updateStoreType, updateStoreArchiveDate
 } from '../../Utils/SQLConstants';
 import PropTypes from 'prop-types';
-import moment from 'moment'
-import "moment/min/locales"
 import { storeType, itemType } from '../../Utils/TypeConstants';
-
+import dayjs from 'dayjs';
+import localizedFormat from 'dayjs/plugin/localizedFormat'
 
 class StoreListComponent extends PureComponent {
     constructor(props) {
         super(props)
 
+        dayjs.extend(localizedFormat)
         // console.debug(props)
-
         const { store } = props
         this.state = {
             storeId: store.storeId,
             storeName: store.storeName,
             storeType: store.storeType,
-            dateToGo: moment(store.dateToGo).locale('en-US').format('l'),
-            archiveDate: moment(store.archiveDate).locale('en-US').format('l'),
+            dateToGo: dayjs(store.dateToGo).format('L'),
+            archiveDate: dayjs(store.archiveDate).format('L'),
             storeNameText: '',
         }
     }
 
     componentDidUpdate(prevProps) {
         if (prevProps.store !== this.props.store) {
-            const date = moment(this.props.store.dateToGo).locale('en-US').format('l')
+            const date = dayjs(this.props.store.dateToGo).format('L')
             this.setState({
                 storeId: this.props.store.storeId,
                 storeName: this.props.store.storeName,
@@ -60,7 +59,6 @@ class StoreListComponent extends PureComponent {
         }
     }
 
-    // TODO: when store is updated, items need to move from store to inventory
     updateItemsOnUpdateStoreType = () => {
         var args = []
         if (this.state.storeType === storeType.ARCHIVE) {
@@ -72,7 +70,7 @@ class StoreListComponent extends PureComponent {
         db.transaction(tx => {
             console.debug('exec updateStoreArchiveDate')
             if (this.state.storeType === storeType.INUSE) {
-                var date = moment(new Date()).format('YYYY-MM-DD')
+                var date = dayjs().format('YYYY-MM-DD')
                 tx.executeSql(updateStoreArchiveDate, [date, this.state.storeId])
             }
             console.debug('exec updateItemsOnUpdateStoreType')
