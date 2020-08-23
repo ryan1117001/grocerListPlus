@@ -57,7 +57,6 @@ class ItemListComponent extends PureComponent {
 				args = [itemType.INVENTORY, item.itemId]
 				break
 		}
-		console.debug(args)
 		db.transaction(tx => {
 			console.debug('exec changeItemType')
 			tx.executeSql(
