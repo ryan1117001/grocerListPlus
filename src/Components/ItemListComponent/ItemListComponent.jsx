@@ -5,23 +5,17 @@ import { styles } from './ItemListComponent.styles';
 import { itemType } from '../../Utils/TypeConstants'
 import PropTypes from 'prop-types';
 import { db, updateItemType, updateItemPurchaseDate, updateItemArchiveDate } from '../../Utils/SQLConstants'
-import moment from 'moment'
+import { isNull, isUndefined } from 'lodash';
+import dayjs from 'dayjs';
+import localizedFormat from 'dayjs/plugin/localizedFormat'
 
 class ItemListComponent extends PureComponent {
 	constructor(props) {
 		super(props);
-
-		console.debug(props)
-
+		dayjs.extend(localizedFormat)
+		const { item } = props
 		this.state = {
-			itemName: props.item.itemName,
-			storeName: props.item.storeName,
-			dateToGo: props.item.dateToGo,
-			itemType: props.item.itemType,
-			storeName: props.item.storeName,
-			purchaseDate: moment(props.item.purchaseDate).locale('en-US').format('l'),
-			archiveDate: moment(props.item.archiveDate).locale('en-US').format('l'),
-			id: props.item.id,
+			item: item,
 		};
 	}
 
@@ -33,8 +27,14 @@ class ItemListComponent extends PureComponent {
 		// You can also log the error to an error reporting service
 	}
 
-	componentDidUpdate = () => {
+	componentDidUpdate = (prevProps, prevState) => {
 		// console.log('ArchiveItemListComponent did update');
+		if (prevProps.item !== this.props.item) {
+			console.debug('ItemList update')
+			this.setState({
+				item: this.props.item
+			})
+		}
 	}
 
 	componentWillUnmount = () => {
@@ -44,64 +44,115 @@ class ItemListComponent extends PureComponent {
 	updateItemType = () => {
 		var args = []
 
-		switch (this.state.itemType) {
+		const { item } = this.state
+
+		switch (item.itemType) {
 			case itemType.STORE:
-				args = [itemType.INVENTORY, this.state.id]
+				args = [itemType.INVENTORY, item.itemId]
 				break
 			case itemType.INVENTORY:
-				args = [itemType.ARCHIVE, this.state.id]
+				args = [itemType.ARCHIVE, item.itemId]
 				break
 			case itemType.ARCHIVE:
-				args = [itemType.INVENTORY, this.state.id]
+				args = [itemType.INVENTORY, item.itemId]
 				break
 		}
-
 		db.transaction(tx => {
 			console.debug('exec changeItemType')
-			console.debug(args)
 			tx.executeSql(
-				updateItemType,
-				args,
-				() => console.debug('changeItemType success'),
-				() => console.debug('changeItemType error')
+				updateItemType, args,
+				() => {
+					// console.debug('changeItemType success')
+				},
+				(error) => console.debug(error)
 			)
-			if (this.state.itemType === itemType.STORE) {
+			if (item.itemType === itemType.STORE) {
 				console.debug('exec updateItemPurchaseDate')
-				var date = moment(new Date()).format('YYYY-MM-DD')
+				var date = dayjs().format('YYYY-MM-DD')
 				tx.executeSql(
-					updateItemPurchaseDate,
-					[date, this.state.id],
-					() => console.debug('updateItemPurchaseDate success'),
-					() => console.debug('updateItemPurchaseDate error')
+					updateItemPurchaseDate, [date, item.itemId],
+					() => {
+						// console.debug('updateItemPurchaseDate success')
+					},
+					(error) => console.debug(error)
 				)
 			}
-			else if (this.state.itemType === itemType.INVENTORY) {
+			else if (item.itemType === itemType.INVENTORY) {
 				console.debug('exec updateArchiveDate')
-				var date = moment(new Date()).format('YYYY-MM-DD')
+				var date = dayjs().format('YYYY-MM-DD')
 				tx.executeSql(
 					updateItemArchiveDate,
-					[date, this.state.id],
-					() => console.debug('updateItemArchiveDate success'),
-					() => console.debug('updateItemArchiveDate error')
+					[date, item.itemId],
+					() => {
+						// console.debug('updateItemArchiveDate success')
+					},
+					(error) => console.debug(error)
 				)
 			}
 		},
-			() => console.debug('error'),
+			(error) => console.debug(error),
 			() => {
-				console.debug('success')
 				this.props.forceRefreshFunc()
-				this.props.toggleSnackBarFunc(this.state.id)
+				this.props.toggleSnackBarFunc(item.itemId)
 			})
 	}
 
 	setDescription = () => {
-		switch (this.state.itemType) {
+
+		const { item } = this.state
+
+		var pricecheck = Number(item.priceAmount)
+		var amountcheck = Number(item.amountOfUnit)
+		var pricePerQtyCalc = 0
+		var pricePerAmountCalc = 0
+		if (isNull(pricecheck) || isUndefined(pricecheck) || pricecheck === '') {
+			pricecheck = 0.00
+		}
+		else {
+			pricecheck = pricecheck.toFixed(2)
+		}
+		if (isNull(amountcheck) || isUndefined(amountcheck) || amountcheck === '' || amountcheck === 0) {
+			amountcheck = 1
+		}
+		pricePerQtyCalc = (pricecheck / item.quantity).toFixed(2)
+		pricePerAmountCalc = (pricecheck / amountcheck).toFixed(2)
+
+		var expirationDate = dayjs(item.expirationDate).format('L')
+		var purchaseDate = dayjs(item.purchaseDate).format('L')
+		var itemArchiveDate = dayjs(item.itemArchiveDate).format('L')
+		switch (item.itemType) {
 			case itemType.STORE:
-				return <Text>Store Temp</Text>
+				return (
+					<Text>
+						{item.category}
+						{"\nPrice: $ " + pricecheck}
+						{"\nPrice Per Qty: $ " + pricePerQtyCalc}
+						{"\nPrice Per Amount (" + item.unitName + ") : $ " + pricePerAmountCalc}
+					</Text>
+				)
 			case itemType.INVENTORY:
-				return <Text>{this.state.storeName + " | Purchased On: " + this.state.purchaseDate}</Text>
+				return (
+					<Text>
+						{item.storeName + " | " + item.category}
+						{"\nPrice: $ " + pricecheck}
+						{"\nPrice Per Qty: $ " + pricePerQtyCalc}
+						{"\nPrice Per Amount (" + item.unitName + ") : $ " + pricePerAmountCalc}
+						{"\nExpires On: " + expirationDate}
+						{"\nPurchased On: " + purchaseDate}
+					</Text>
+				)
 			case itemType.ARCHIVE:
-				return <Text>{this.state.storeName + " | Archived On: " + this.state.archiveDate}</Text>
+				return (
+					<Text>
+						{item.storeName + " | " + item.category}
+						{"\nPrice: $ " + pricecheck}
+						{"\nPrice Per Qty: $ " + pricePerQtyCalc}
+						{"\nPrice Per Amount (" + item.unitName + ") : $ " + pricePerAmountCalc}
+						{"\nExpires On: " + expirationDate}
+						{"\nPurchased On: " + purchaseDate}
+						{"\nArchived On: " + itemArchiveDate}
+					</Text>
+				)
 			default:
 				<Text>Description Error</Text>
 				console.debug('Description Error')
@@ -109,7 +160,7 @@ class ItemListComponent extends PureComponent {
 	}
 
 	setLeftButton = () => {
-		switch (this.state.itemType) {
+		switch (this.state.item.itemType) {
 			case itemType.ARCHIVE:
 				return <IconButton
 					icon='arrow-left-bold-box-outline'
@@ -124,23 +175,24 @@ class ItemListComponent extends PureComponent {
 	}
 
 	render() {
+		const { item } = this.state
 		return (
 			<Provider>
 				<View style={styles.ItemListComponentWrapper}>
 					<Surface
-						key={this.state.id}
+						key={item.itemId}
 						style={styles.Surface}>
 						<List.Item
-							title={<Text style={styles.itemTitle}>{this.state.itemName}</Text>}
-							onPress={() => { }}
-							onLongPress={() => { this.props.toggleExtraOptionsFunc(this.state.id) }}
+							title={<Text style={styles.itemTitle}>{item.itemName}</Text>}
+							onPress={() => { this.props.toggleEditItemModalFunc(item) }}
+							onLongPress={() => { this.props.toggleExtraOptionsFunc(item.itemId, item.itemType, item.storeId) }}
 							description={this.setDescription}
-							key={this.state.id}
+							key={item.itemId}
 							left={this.setLeftButton}
 							right={() =>
 								<IconButton
 									icon='trash-can-outline'
-									onPress={() => this.props.toggleDeleteItemConfirmationFunc(this.state.id)}
+									onPress={() => this.props.toggleDeleteItemConfirmationFunc(item.itemId)}
 								/>
 							}
 						/>
@@ -152,14 +204,11 @@ class ItemListComponent extends PureComponent {
 }
 
 ItemListComponent.propTypes = {
-	itemName: PropTypes.string,
-	storeName: PropTypes.string,
-	id: PropTypes.number,
-	dateToGo: PropTypes.string,
 	toggleDeleteItemConfirmationFunc: PropTypes.func,
 	forceRefreshFunc: PropTypes.func,
 	toggleSnackBarFunc: PropTypes.func,
-	toggleExtraOptionsFunc: PropTypes.func
+	toggleExtraOptionsFunc: PropTypes.func,
+	toggleEditItemModalFunc: PropTypes.func
 };
 
 ItemListComponent.defaultProps = {

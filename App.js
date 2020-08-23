@@ -7,13 +7,20 @@ import { navigationRef } from './src/Utils/RootNavigation';
 import { enableScreens } from 'react-native-screens';
 import StoresPage from './src/Pages/StoresPage/StoresPage';
 import StoreItemsPage from './src/Pages/StoreItemsPage/StoreItemsPage'
-import InventoryItemPage from './src/Pages/InventoryItemPage/InventoryItemPage';
-import SettingsPage from './src/Pages/SettingsPage/SettingsPage';
-import ArchiveItemPage from './src/Pages/ArchiveItemPage/ArchiveItemPage';
-import ArchiveStorePage from './src/Pages/ArchiveStorePage/ArchiveStorePage';
+import SettingsPage from './src/Pages/SettingsPage/SettingsPage'
+import AboutPage from './src/Pages/AboutPage/AboutPage'
 import {
-	db, enableFK, createItemsTable, createStoresTable
+	db, enableFK, createItemsTable, createStoresTable, retrieveSettings,
+	insertInitSetting, createSettingsTable, createCategoriesTable,
+	insertDefaultCategories,
+	insertDefaultUnits,
+	createUnitsTables
 } from './src/Utils/SQLConstants';
+import { YellowBox } from 'react-native';
+
+YellowBox.ignoreWarnings([
+	'Non-serializable values were found in the navigation state',
+]);
 
 function TopTabNavigator({ navigation: stackNavigation }) {
 	const TopTabNav = createMaterialTopTabNavigator()
@@ -29,14 +36,20 @@ function TopTabNavigator({ navigation: stackNavigation }) {
 		>
 			<TopTabNav.Screen
 				name='ArchiveStores'
-				component={ArchiveStorePage}
+				component={StoresPage}
+				options={{
+					title: 'Stores'
+				}}
 				initialParams={{
 					stackNavigation: stackNavigation
 				}}
 			/>
 			<TopTabNav.Screen
 				name='ArchiveItems'
-				component={ArchiveItemPage}
+				component={StoreItemsPage}
+				options={{
+					title: 'Items'
+				}}
 				initialParams={{
 					stackNavigation: stackNavigation
 				}}
@@ -79,6 +92,14 @@ function BottomTabNavigator() {
 					tabBarIcon: 'archive'
 				}}
 			/>
+			<BottomTabNav.Screen
+				name='Settings'
+				component={SettingsContainer}
+				options={{
+					title: 'Settings',
+					tabBarIcon: 'dots-horizontal-circle'
+				}}
+			/>
 		</BottomTabNav.Navigator>
 	)
 }
@@ -90,6 +111,20 @@ function ArchiveContainer() {
 			<ArchiveStackContainer.Screen
 				name='ArchiveContainer'
 				component={TopTabNavigator}
+				options={{
+					headerStyle: {
+						backgroundColor: '#5C00E7',
+					}
+				}}
+			/>
+			<ArchiveStackContainer.Screen
+				name='ArchiveStoreItems'
+				component={StoreItemsPage}
+				options={{
+					headerStyle: {
+						backgroundColor: '#5C00E7',
+					}
+				}}
 			/>
 		</ArchiveStackContainer.Navigator>
 	)
@@ -102,10 +137,20 @@ function StoreContainer() {
 			<StoreStackContainer.Screen
 				name='Stores'
 				component={StoresPage}
+				options={{
+					headerStyle: {
+						backgroundColor: '#5C00E7',
+					}
+				}}
 			/>
 			<StoreStackContainer.Screen
 				name='StoreItems'
 				component={StoreItemsPage}
+				options={{
+					headerStyle: {
+						backgroundColor: '#5C00E7',
+					}
+				}}
 			/>
 		</StoreStackContainer.Navigator>
 	)
@@ -116,8 +161,13 @@ function InventoryContainer() {
 	return (
 		<InventoryContainer.Navigator>
 			<InventoryContainer.Screen
-				name='InventoryContainer'
-				component={InventoryItemPage}
+				name='InventoryItems'
+				component={StoreItemsPage}
+				options={{
+					headerStyle: {
+						backgroundColor: '#5C00E7',
+					}
+				}}
 			/>
 		</InventoryContainer.Navigator>
 	)
@@ -142,10 +192,22 @@ function SettingsContainer() {
 	return (
 		<SettingsStackContainer.Navigator>
 			<SettingsStackContainer.Screen
-				name='SettingsStackContainer'
+				name='Settings'
 				component={SettingsPage}
 				options={{
 					headerTitle: 'Settings',
+					headerStyle: {
+						backgroundColor: '#5C00E7',
+					},
+					headerTintColor: '#FFF',
+
+				}}
+			/>
+			<SettingsStackContainer.Screen
+				name='About'
+				component={AboutPage}
+				options={{
+					headerTitle: 'About',
 					headerStyle: {
 						backgroundColor: '#5C00E7',
 					},
@@ -157,13 +219,30 @@ function SettingsContainer() {
 	)
 }
 function initDB() {
+	console.debug('exec initDB')
+
 	db.transaction((tx) => {
-		console.debug('exec enableFK')
-		tx.executeSql(enableFK);
-		console.debug('exec createStoresTable')
-		tx.executeSql(createStoresTable);
-		console.debug('exec createItemsTable')
-		tx.executeSql(createItemsTable)
+		tx.executeSql(
+			retrieveSettings, [],
+			(tx, resultSet) => {
+				console.debug('settings found')
+			},
+			(error) => {
+				console.debug('settings does not exist')
+				//enable foriegn keys
+				tx.executeSql(enableFK);
+				//create tables
+				tx.executeSql(createStoresTable);
+				tx.executeSql(createItemsTable)
+				tx.executeSql(createSettingsTable)
+				tx.executeSql(createCategoriesTable)
+				tx.executeSql(createUnitsTables)
+				//initialize default settings
+				tx.executeSql(insertInitSetting, [1, 1, 1])
+				tx.executeSql(insertDefaultCategories)
+				tx.executeSql(insertDefaultUnits)
+			}
+		)
 	},
 		(error) => console.debug(error),
 		() => console.debug('successful init')

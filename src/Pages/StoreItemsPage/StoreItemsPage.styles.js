@@ -4,11 +4,14 @@ export const styles = StyleSheet.create({
     StoreItemsPageWrapper: {
         flex: 1,
     },
+    FlatListWrapper: {
+        flex: 1
+    },
     HeaderWrapper: {
         flexDirection: 'row'
     },
     CalendarWrapper: {
-        marginHorizontal: 20
+        marginHorizontal: 10
     },
     TitleRowWrapper: {
         flexDirection: 'row',
@@ -16,19 +19,15 @@ export const styles = StyleSheet.create({
         alignItems: 'center',
         marginVertical: 2
     },
-    UserInputWrapper: {
-        flex: 1,
+    CounterWrapper: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'center'
     },
-    Fab: {
-        position: 'absolute',
-        right: 0,
-        bottom: 0,
-        margin: 16
+    UnitsWrapper: {
+        flexDirection: 'row',
+        alignItems: 'center'
     },
-    Surface: {
-        marginVertical: 1,
-        elevation: 4,
-    }
+    UnitsUserInputWrapper: {
+        flex: .5
+    },
 });

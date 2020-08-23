@@ -1,116 +1,152 @@
 import React, { PureComponent } from 'react';
-import { View } from 'react-native';
-import { List, Appbar } from 'react-native-paper';
+import { ScrollView, View } from 'react-native';
+import { List, Divider, Portal, Dialog, Text, Button, Provider } from 'react-native-paper';
 import * as styles from './SettingsPage.styles';
-import { db, deleteStores, deleteItems, dropItemsTable, dropStoreTable } from '../../Utils/SQLConstants';
+import {
+	db, deleteItems, dropItemsTable, dropStoreTable,
+	dropCategoriesTable, dropSettingsTable, enableFK, createItemsTable,
+	createStoresTable, insertInitSetting,
+	createSettingsTable, createCategoriesTable,
+	insertDefaultCategories, insertDefaultUnits,
+	createUnitsTables,
+	dropUnitsTable
+} from '../../Utils/SQLConstants';
 
-const SETTINGS = [
-  {
-    id: 1,
-    description: 'Remove All Stores',
-    title: 'Remove All Stores',
-  },
-  {
-    id: 2,
-    description: 'Remove All Items',
-    title: 'Remove All Items'
-  },
-  {
-    id: 3,
-    description: 'Drop All Tables',
-    title: 'Drop All Tables'
-  }
-
-];
+var SETTINGS = []
 
 class SettingsPage extends PureComponent {
-  constructor(props) {
-    super(props);
+	constructor(props) {
+		super(props);
 
-    this.state = {
-      hasError: false,
-    };
-  }
+		this.state = {
+			hasError: false,
+			toggleReinitializeDBModal: false
+		};
+		SETTINGS = [
+			{
+				tabId: 1,
+				title: 'About',
+				description: 'About the developer!',
+				function: () => this.navigateToAbout()
+			},
+			{
+				tabId: 2,
+				title: 'Reset',
+				description: 'Completely remove all data',
+				function: () => this.toggleReinitializeDBModal()
+			}
+		]
+	}
 
-  componentDidMount = () => { }
+	componentDidMount = () => { }
 
-  componentDidCatch(error, info) { }
+	componentDidCatch(error, info) { }
 
-  getSnapshotBeforeUpdate = (prevProps, prevState) => { }
+	componentDidUpdate = () => { }
 
-  componentDidUpdate = () => { }
+	componentWillUnmount = () => { }
 
-  componentWillUnmount = () => { }
+	toggleReinitializeDBModal = () => {
+		this.setState({
+			toggleReinitializeDBModal: !this.state.toggleReinitializeDBModal
+		})
+	}
 
-  removeAllStores = () => {
-    console.debug('Removing all stores')
-    db.transaction((tx) => {
-      tx.executeSql(deleteStores);
-    },
-      (error) => console.debug(error + '\ntransaction error'),
-      () => console.debug('successful')
-    )
-  }
+	removeAllItems = () => {
+		console.debug('remove items')
+		db.transaction((tx) => {
+			tx.executeSql(deleteItems);
+		},
+			(error) => console.debug(error),
+			() => console.debug('successful')
+		)
+	}
 
-  removeAllItems = () => {
-    console.debug('remove items')
-    db.transaction((tx) => {
-      tx.executeSql(deleteItems);
-    },
-      (error) => console.debug(error + '\ntransaction error'),
-      () => console.debug('successful')
-    )
-  }
+	navigateToAbout = () => {
+		this.props.navigation.navigate('About')
+	}
 
-  removeAllTables = () => {
-    console.debug('drop tables')
-    db.transaction((tx) => {
-      tx.executeSql(dropItemsTable);
-      tx.executeSql(dropStoreTable);
-    },
-      (error) => console.debug(error + '\ntransaction error'),
-      () => console.debug('successful')
-    )
-  }
+	reinitializeDB = () => {
+		console.debug('drop tables')
+		db.transaction((tx) => {
+			//Drop table
+			tx.executeSql(dropItemsTable)
+			tx.executeSql(dropStoreTable)
+			tx.executeSql(dropCategoriesTable)
+			tx.executeSql(dropSettingsTable)
+			tx.executeSql(dropUnitsTable)
 
-  identifySQLQuery = (id) => {
-    switch (id) {
-      case 1:
-        this.removeAllStores();
-        break;
-      case 2:
-        this.removeAllItems();
-        break;
-      case 3:
-        this.removeAllTables();
-        break;
-    }
-  }
+			tx.executeSql(enableFK);
+			//create tables
+			tx.executeSql(createStoresTable);
+			tx.executeSql(createItemsTable)
+			tx.executeSql(createSettingsTable)
+			tx.executeSql(createCategoriesTable)
+			tx.executeSql(createUnitsTables)
+			//initialize default settings
+			tx.executeSql(insertInitSetting, [1, 1])
+			tx.executeSql(insertDefaultCategories)
+			tx.executeSql(insertDefaultUnits)
+		},
+			(error) => console.debug(error),
+			() => {
+				console.debug('successful')
+				this.props.navigation.reset({
+					index: 0,
+					routes: [{ name: 'StoreStack' }],
+				});
+			}
+		)
+	}
 
-  render() {
-    return (
-      <View style={styles.SettingsPageWrapper}>
-        <List.Section>
-          {SETTINGS.map(item =>
-            <List.Item
-              key={item.id}
-              title={item.description}
-              description={item.description}
-              onPress={this.identifySQLQuery.bind(this, item.id)}
-            />
-          )}
-        </List.Section>
-      </View>
-    );
-  }
+	render() {
+		return (
+			<Provider>
+				<ScrollView style={styles.SettingsPageWrapper}>
+					<List.Section>
+						{SETTINGS.map(item =>
+							<View
+								key={item.tabId}
+							>
+								<List.Item
+									key={item.tabId}
+									title={item.description}
+									description={item.description}
+									onPress={item.function}
+								/>
+								<Divider />
+							</View>
+						)}
+					</List.Section>
+					{/* delete item confirmation */}
+					<Portal>
+						<Dialog
+							visible={this.state.toggleReinitializeDBModal}
+							onDismiss={this.toggleReinitializeDBModal}>
+							<Dialog.Title>Reinitialize The App</Dialog.Title>
+							<Dialog.Content>
+								<Text>
+									Reinitializing means all data will be lost, and everything will be reset.
+							</Text>
+							</Dialog.Content>
+							<Dialog.Actions>
+								<Button onPress={this.toggleReinitializeDBModal}>Cancel</Button>
+								<Button onPress={() => this.reinitializeDB()}>Confirm</Button>
+							</Dialog.Actions>
+						</Dialog>
+					</Portal>
+				</ScrollView>
+			</Provider>
+		);
+	}
 }
 
 SettingsPage.propTypes = {
-  // bla: PropTypes.string,
+	// bla: PropTypes.string,
 };
 
 SettingsPage.defaultProps = {
-  // bla: 'test',
+	// bla: 'test',
 };
 
 export default SettingsPage;
